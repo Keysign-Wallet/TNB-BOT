@@ -64,7 +64,7 @@ async def on_ready():
 	await db.commit()
 
 	for row in records:
-		server_list.append(Server(records[row][0], records[row][1]))
+		server_list.append(Server(row[0], row[1]))
 
 	print ("------------------------------------")
 	print(f"Bot Name: {client.user.name}")
@@ -78,16 +78,16 @@ async def on_ready():
 @client.command(pass_context=True, description="Register address")
 async def register(ctx, address=None):
 	if address == None:
-		await ctx.send(f"To register your address, use the command ´!register [address]´. After this, you have 15 minutes to send coins to {bot_wallet} and then using the command `!verify` to confirm your address.")
+		await ctx.send(f"To register your address, use the command ´!register [address]´. After this, you have 15 minutes to send coins to `{bot_wallet}` and then using the command `!verify` to confirm your address.")
 	else:
 		await c.execute(f"SELECT * FROM users WHERE user={ctx.author.id}")
 		records = await c.fetchall()
 		if any(records):
-			await ctx.send(f"You already have a registered address: {records[1]}")
+			await ctx.send(f"You already have a registered address: `{records[1]}`")
 			return
 		else:
 			address_holder.append(Register(ctx.author.id, address))
-			await ctx.send(f"You now have 15 minutes to send coins to {bot_wallet} from {address} and then use the command `!verify` to confirm the address.")
+			await ctx.send(f"You now have 15 minutes to send coins to `{bot_wallet}` from `{address}` and then use the command `!verify` to confirm the address.")
 
 
 @client.command(pass_context=True, description="Verify transaction")
@@ -98,12 +98,21 @@ async def verify(ctx):
 			info = r.json()
 			if any(info["results"]):
 				await c.execute(f"INSERT INTO users VALUES ({int(ctx.author.id)}, {address.address})")
-				await ctx.send(f"Address {address.address} succesfully associated with {ctx.author.mention}")
+				await ctx.send(f"Address `{address.address}` succesfully associated with {ctx.author.mention}")
 				address_holder.remove(address)
 			else:
-				await ctx.send(f"No transaction detected from {address.address}")
+				await ctx.send(f"No transaction detected from `{address.address}`")
 			return
 	await ctx.send("No address to verify. Did you make sure to use `!register [address]`?")
+
+@client.command(pass_context=True, description="Check the verification status of a user")
+async def Status(ctx, member: discord.Member):
+	await c.execute(f"SELECT * FROM users WHERE user={member.id}")
+	records = await c.fetchall()
+	if any(records):
+		await ctx.send(f"{member.name} has a verified address at ´{records[1]}´")
+	else:
+		await ctx.send(f"No address could be found for {member.name}")
 
 
 # ------------------------------------------------------------------------------------ Administrative ------------------------------------------------------------------------------------
