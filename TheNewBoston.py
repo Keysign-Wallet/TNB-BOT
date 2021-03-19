@@ -5,7 +5,15 @@ import discord
 from discord.voice_client import VoiceClient
 from discord.ext import commands
 import requests
-import aiosqlite
+from django.conf import settings
+import django
+from asgiref.sync import sync_to_async
+
+sys.path.append('D:/Ermia/Projects/Github/TNB-BOT/API')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "API.API.settings")
+os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+django.setup()
+from main.models import User, Server
 
 # ------------------------------------------------------------------------------------ Startup ------------------------------------------------------------------------------------
 
@@ -19,10 +27,8 @@ token = open(file_directory + "/token.txt","r").read()
 
 manager_id = 264475723283038208 # discord ID of the person managing the bot
 
-bot_wallet = ""
+bot_wallet = "07ff04c084cc12f3fbb89d15e04c6bf54500f88f5191a7db653cb10889f650e6"
 
-db = None
-c = None
 
 class Register:
 	def  __init__(self, user_id, address):
@@ -30,7 +36,7 @@ class Register:
 		self.address = address
 
 
-class Server:
+class Guild:
 	def __init__(self, server_id, channel_id):
 		self.server_id = server_id
 		self.channel_id = channel_id
@@ -41,30 +47,10 @@ address_holder = []
 @client.event
 async def on_ready():
 
-	global db
-	global c
+	servers = await sync_to_async(Server.objects.all)()
 
-	db = await aiosqlite.connect(":memory:")
-	c = await db.cursor()
-
-	# remove once real DB has been created, this only needs to be created once. Preferably through command line.
-	await c.execute("""CREATE TABLE servers (
-			 server integer,
-			 channel integer
-			 )""")
-
-	await c.execute("""CREATE TABLE users ( 
-			 user integer,
-			 address text
-			 )""")
- 	###
-	await c.execute("SELECT * FROM servers")
-	records = await c.fetchall()
-
-	await db.commit()
-
-	for row in records:
-		server_list.append(Server(row[0], row[1]))
+	for server in servers:
+		server_list.append(Guild(server.ServerID, server.ChannelID))
 
 	print ("------------------------------------")
 	print(f"Bot Name: {client.user.name}")
@@ -77,13 +63,27 @@ async def on_ready():
 
 @client.command(pass_context=True, description="Register address")
 async def register(ctx, address=None):
+	for server in server_list:
+		if server.server_id == ctx.guild.id:
+			if ctx.channel.id != server.channel_id:
+				return
+
 	if address == None:
 		await ctx.send(f"To register your address, use the command ´!register [address]´. After this, you have 15 minutes to send coins to `{bot_wallet}` and then using the command `!verify` to confirm your address.")
 	else:
-		await c.execute(f"SELECT * FROM users WHERE user={ctx.author.id}")
-		records = await c.fetchall()
-		if any(records):
-			await ctx.send(f"You already have a registered address: `{records[1]}`")
+		users = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
+		owned = await sync_to_async(User.objects.filter)(Address=address)
+		other = False
+
+		for pending in address_holder:
+			if pending.address == address:
+				other = True
+
+		if any(users):
+			await ctx.send(f"You already have a registered address: `{users[0].Address}`")
+			return
+		elif other or any(owned):
+			await ctx.send(f"Someone else is already registering this address, or owns it.")
 			return
 		else:
 			address_holder.append(Register(ctx.author.id, address))
@@ -92,12 +92,17 @@ async def register(ctx, address=None):
 
 @client.command(pass_context=True, description="Verify transaction")
 async def verify(ctx):
+	for server in server_list:
+		if server.server_id == ctx.guild.id:
+			if ctx.channel.id != server.channel_id:
+				return
 	for address in address_holder:
 		if address.user_id == ctx.author.id:
-			r = requests.get(f"http://54.193.31.159/bank_transactions?format=json&limit=1&block__sender={address.address}&recipient={bot_wallet}") # sender and receiver logic needed as well as a user DB
+			r = requests.get(f"http://13.57.215.62/bank_transactions?format=json&limit=1&block__sender={address.address}&recipient={bot_wallet}") # sender and receiver logic needed as well as a user DB
 			info = r.json()
 			if any(info["results"]):
-				await c.execute(f"INSERT INTO users VALUES ({int(ctx.author.id)}, {address.address})")
+				query = User(DiscordID=int(ctx.author.id), Address=address.address, PaymentDue=0, VIP=False)
+				query.save()
 				await ctx.send(f"Address `{address.address}` succesfully associated with {ctx.author.mention}")
 				address_holder.remove(address)
 			else:
@@ -106,11 +111,15 @@ async def verify(ctx):
 	await ctx.send("No address to verify. Did you make sure to use `!register [address]`?")
 
 @client.command(pass_context=True, description="Check the verification status of a user")
-async def Status(ctx, member: discord.Member):
-	await c.execute(f"SELECT * FROM users WHERE user={member.id}")
-	records = await c.fetchall()
+async def status(ctx, member: discord.Member):
+	for server in server_list:
+		if server.server_id == ctx.guild.id:
+			if ctx.channel.id != server.channel_id:
+				return
+
+	records = await sync_to_async(User.objects.filter)(DiscordID=member.id)
 	if any(records):
-		await ctx.send(f"{member.name} has a verified address at ´{records[1]}´")
+		await ctx.send(f"{member.name} has a verified address at `{records[0].Address}`")
 	else:
 		await ctx.send(f"No address could be found for {member.name}")
 
@@ -147,7 +156,7 @@ async def ban(ctx, member: discord.Member, *, reason=None):
 	message = await ctx.send(embed=embed)
 	await member.ban(reason=reason)
 
-@client.command(pass_context=True, description="clear messages") # in case of a raid
+@client.command(pass_context=True, description="clear messages")
 @commands.has_permissions(manage_messages=True)
 async def clear(ctx, amount=100):
 	channel = ctx.message.channel
@@ -160,8 +169,8 @@ async def clear(ctx, amount=100):
 @client.command(pass_context=True, description="Set commands channel")
 @commands.has_permissions(administrator=True)
 async def channel(ctx, channel: discord.TextChannel):
-	await c.execute(f"INSERT INTO servers VALUES ({int(ctx.guild.id)}, {int(channel.id)})")
-	server_list.append(Server(int(ctx.guild.id), int(channel.id)))
+	query = Server(ServerID=int(ctx.guild.id), ChannelID=int(channel.id))
+	server_list.append(Guild(int(ctx.guild.id), int(channel.id)))
 	embed = discord.Embed(title="Settings changed", description=f"Commands channel set to: {channel.mention}", color=0xff0000)
 	message = await ctx.send(embed=embed)
 
