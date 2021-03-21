@@ -61,7 +61,7 @@ async def on_ready():
 
 # ------------------------------------------------------------------------------------ User functions ------------------------------------------------------------------------------------
 
-@client.command(pass_context=True, description="Register address")
+@client.command(pass_context=True, brief="Register address")
 async def register(ctx, address=None):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
@@ -90,7 +90,7 @@ async def register(ctx, address=None):
 			await ctx.send(f"You now have to send coins to `{bot_wallet}` from `{address}` and then use the command `!verify` to confirm the address.")
 
 
-@client.command(pass_context=True, description="Verify transaction")
+@client.command(pass_context=True, brief="Verify transaction")
 async def verify(ctx):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
@@ -110,7 +110,7 @@ async def verify(ctx):
 			return
 	await ctx.send("No address to verify. Did you make sure to use `!register [address]`?")
 
-@client.command(pass_context=True, description="Check the verification status of a user")
+@client.command(pass_context=True, brief="Check the verification status of a user")
 async def status(ctx, member: discord.Member):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
@@ -127,7 +127,7 @@ async def status(ctx, member: discord.Member):
 # ------------------------------------------------------------------------------------ Administrative ------------------------------------------------------------------------------------
 
 
-@client.command(pass_context=True, description="secret")
+@client.command(pass_context=True, brief="secret")
 async def kill(ctx):
 	if int(ctx.author.id) == manager_id:
 		await ctx.message.delete()
@@ -139,7 +139,7 @@ async def kill(ctx):
 	else:
 		print("nah")
 
-@client.command(pass_context=True, description="kick member")
+@client.command(pass_context=True, brief="kick member")
 @commands.has_permissions(kick_members=True)
 async def kick(ctx, member: discord.Member, *, reason=None):
 	embed = discord.Embed(title="Member kicked.", description=f"Member kicked: {member.mention}\nReason: {reason}", color=0xff0000)
@@ -147,7 +147,7 @@ async def kick(ctx, member: discord.Member, *, reason=None):
 	message = await ctx.send(embed=embed)
 	await member.kick(reason=reason)
 
-@client.command(pass_context=True, description="ban member")
+@client.command(pass_context=True, brief="ban member")
 @commands.has_permissions(ban_members=True)
 async def ban(ctx, member: discord.Member, *, reason=None):
 	embed = discord.Embed(title="Member banned.", description=f"Member banned: {member.mention}\nReason: {reason}", color=0xff0000)
@@ -155,7 +155,7 @@ async def ban(ctx, member: discord.Member, *, reason=None):
 	message = await ctx.send(embed=embed)
 	await member.ban(reason=reason)
 
-@client.command(pass_context=True, description="clear messages")
+@client.command(pass_context=True, brief="clear messages")
 @commands.has_permissions(manage_messages=True)
 async def clear(ctx, amount=100):
 	channel = ctx.message.channel
@@ -165,7 +165,7 @@ async def clear(ctx, amount=100):
 	await channel.delete_messages(messages)
 	await ctx.send(f'{str(amount)} messages deleted.')
 
-@client.command(pass_context=True, description="Set commands channel")
+@client.command(pass_context=True, brief="Set commands channel")
 @commands.has_permissions(administrator=True)
 async def channel(ctx, channel: discord.TextChannel):
 	query = Server(ServerID=int(ctx.guild.id), ChannelID=int(channel.id))
