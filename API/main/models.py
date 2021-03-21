@@ -4,8 +4,6 @@ from django.db import models
 class User(models.Model):
 	DiscordID = models.IntegerField()
 	Address = models.TextField()
-	PaymentDue = models.IntegerField()
-	VIP = models.BooleanField()
 
 	def __str__(self):
 		return str(self.DiscordID)
