@@ -21,7 +21,7 @@ from main.models import User, Server
 directory = os.getcwd()
 file_directory = directory + "/files"
 
-client = commands.Bot(command_prefix='!')
+client = commands.Bot(command_prefix='-')
 
 token = open(file_directory + "/token.txt","r").read()
 
@@ -69,7 +69,7 @@ async def register(ctx, address=None):
 				return
 
 	if address == None:
-		await ctx.send(f"To register your address, use the command `!register [address]`. After this, you need to send coins to `{bot_wallet}` and then using the command `!verify` to confirm your address.")
+		await ctx.send(f"To register your address, use the command `!register [address]`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `!verify` to confirm your address.")
 	else:
 		users = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
 		owned = await sync_to_async(User.objects.filter)(Address=address)
@@ -87,7 +87,7 @@ async def register(ctx, address=None):
 			return
 		else:
 			address_holder.append(Register(ctx.author.id, address))
-			await ctx.send(f"You now have to send coins to `{bot_wallet}` from `{address}` and then use the command `!verify` to confirm the address.")
+			await ctx.send(f"You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `!verify` to confirm the address.")
 
 
 @client.command(pass_context=True, brief="Verify transaction")
