@@ -69,7 +69,7 @@ async def register(ctx, address=None):
 				return
 
 	if address == None:
-		await ctx.send(f"To register your address, use the command `!register [address]`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `!verify` to confirm your address.")
+		await ctx.send(f"To register your address, use the command `-register [address]`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `-verify` to confirm your address.")
 	else:
 		users = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
 		owned = await sync_to_async(User.objects.filter)(Address=address)
@@ -87,7 +87,7 @@ async def register(ctx, address=None):
 			return
 		else:
 			address_holder.append(Register(ctx.author.id, address))
-			await ctx.send(f"You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `!verify` to confirm the address.")
+			await ctx.send(f"You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `-verify` to confirm the address.")
 
 
 @client.command(pass_context=True, brief="Verify transaction")
@@ -108,7 +108,7 @@ async def verify(ctx):
 			else:
 				await ctx.send(f"No transaction detected from `{address.address}`")
 			return
-	await ctx.send("No address to verify. Did you make sure to use `!register [address]`?")
+	await ctx.send("No address to verify. Did you make sure to use `-register [address]`?")
 
 @client.command(pass_context=True, brief="Check the verification status of a user")
 async def status(ctx, member: discord.Member):
