@@ -1,6 +1,11 @@
 # TNB-BOT
 TNBC Discord bot
 
+Add the bot https://discord.com/api/oauth2/authorize?client_id=823155121197416458&permissions=8&scope=bot
+
+
+### Setting up the bot
+
 A basic bot to create asscossiation between wallet addresses and discord users. This way people can find each others' real and trusted address on a platform where they know they are talking to the correct person.
 
 # Installation for developers and contributors
