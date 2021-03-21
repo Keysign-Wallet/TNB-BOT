@@ -10,7 +10,7 @@ import django
 from asgiref.sync import sync_to_async
 
 sys.path.append(os.getcwd() + '/API')
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "API.API.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "API.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
 from main.models import User, Server
