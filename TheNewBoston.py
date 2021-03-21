@@ -133,7 +133,6 @@ async def kill(ctx):
 		await ctx.send("Recieved shutdown command, shutting down.")
 		await asyncio.sleep(1)
 		await client.close()
-		await db.close()
 		sys.exit()
 		exit()
 	else:
