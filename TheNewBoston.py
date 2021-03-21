@@ -9,7 +9,7 @@ from django.conf import settings
 import django
 from asgiref.sync import sync_to_async
 
-sys.path.append('D:/Ermia/Projects/Github/TNB-BOT/API')
+sys.path.append(os.getcwd() + '/API')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "API.API.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
@@ -69,7 +69,7 @@ async def register(ctx, address=None):
 				return
 
 	if address == None:
-		await ctx.send(f"To register your address, use the command ´!register [address]´. After this, you have 15 minutes to send coins to `{bot_wallet}` and then using the command `!verify` to confirm your address.")
+		await ctx.send(f"To register your address, use the command `!register [address]`. After this, you have 15 minutes to send coins to `{bot_wallet}` and then using the command `!verify` to confirm your address.")
 	else:
 		users = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
 		owned = await sync_to_async(User.objects.filter)(Address=address)
