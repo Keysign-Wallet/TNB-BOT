@@ -90,7 +90,7 @@ async def register(ctx, address=None):
 			await ctx.send(f"You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `>verify` to confirm the address.")
 
 
-@client.command(pass_context=True, brief="Verify transaction")
+@client.command(pass_context=True, brief="Verify address registration transaction")
 async def verify(ctx):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
@@ -123,7 +123,14 @@ async def status(ctx, member: discord.Member):
 	else:
 		await ctx.send(f"No address could be found for {member.name}")
 
+@client.command(pass_context=True, brief="Ways to earn coins")
+async def earn(ctx):
+	for server in server_list:
+		if server.server_id == ctx.guild.id:
+			if ctx.channel.id != server.channel_id:
+				return
 
+	ctx.send("To earn coins, try completing some tasks: https://thenewboston.com/tasks/All")
 # ------------------------------------------------------------------------------------ Administrative ------------------------------------------------------------------------------------
 
 
