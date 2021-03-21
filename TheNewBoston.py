@@ -111,12 +111,14 @@ async def verify(ctx):
 	await ctx.send("No address to verify. Did you make sure to use `>register [address]`?")
 
 @client.command(pass_context=True, brief="Check the verification status of a user")
-async def status(ctx, member: discord.Member):
+async def status(ctx, member: discord.Member=None):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
 			if ctx.channel.id != server.channel_id:
 				return
 
+	if not member:
+		member = ctx.author
 	records = await sync_to_async(User.objects.filter)(DiscordID=member.id)
 	if any(records):
 		await ctx.send(f"{member.name} has a verified address at `{records[0].Address}`")
@@ -130,7 +132,7 @@ async def earn(ctx):
 			if ctx.channel.id != server.channel_id:
 				return
 
-	ctx.send("To earn coins, try completing some tasks: https://thenewboston.com/tasks/All")
+	await ctx.send("To earn coins, try completing some tasks: https://thenewboston.com/tasks/All")
 # ------------------------------------------------------------------------------------ Administrative ------------------------------------------------------------------------------------
 
 
