@@ -96,17 +96,18 @@ async def verify(ctx):
 		if server.server_id == ctx.guild.id:
 			if ctx.channel.id != server.channel_id:
 				return
-	if ctx.author.id in [address.user_id for address in address_holder]:
-		r = requests.get(f"http://13.57.215.62/bank_transactions?format=json&limit=1&block__sender={address.address}&recipient={bot_wallet}") # sender and receiver logic needed as well as a user DB
-		info = r.json()
-		if any(info["results"]):
-			query = User(DiscordID=int(ctx.author.id), Address=address.address)
-			query.save()
-			await ctx.send(f"Address `{address.address}` succesfully associated with {ctx.author.mention}")
-			address_holder.remove(address)
-		else:
-			await ctx.send(f"No transaction detected from `{address.address}`")
-		return
+	for address in address_holder:
+		if address.user_id == ctx.author.id:
+			r = requests.get(f"http://13.57.215.62/bank_transactions?format=json&limit=1&block__sender={address.address}&recipient={bot_wallet}") # sender and receiver logic needed as well as a user DB
+			info = r.json()
+			if any(info["results"]):
+				query = User(DiscordID=int(ctx.author.id), Address=address.address)
+				query.save()
+				await ctx.send(f"Address `{address.address}` succesfully associated with {ctx.author.mention}")
+				address_holder.remove(address)
+			else:
+				await ctx.send(f"No transaction detected from `{address.address}`")
+			return
 	await ctx.send("No address to verify. Did you make sure to use `!register [address]`?")
 
 @client.command(pass_context=True, description="Check the verification status of a user")
