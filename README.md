@@ -1,8 +1,8 @@
 # TNB-BOT
+
 TNBC Discord bot
 
 Add the bot https://discord.com/api/oauth2/authorize?client_id=823155121197416458&permissions=8&scope=bot
-
 
 ### Setting up the bot
 
@@ -29,11 +29,14 @@ Install python 3.9 to your computer, and make sure to include the "add to path" 
 1. Download the latest version from the main branch
 2. Head into the folder holding "thenewboston.py" using a terminal
 3. Install the requirements using pip:
+
 ```
 pip install -r requirements.txt
 ```
-4. Edit the file in the `files` folder named `token.txt` and put in the token copied earlier, in the step 5 of "Discord Bot Creation"
-5. Run "python thenewboston.py" in the terminal (Will not work well until the API is set up, as you have no DB yet)
+
+4. Copy the `example.env` file to a new file called `.env` and replace the values with the preferred ones.
+5. The token copied earlier, in the step 5 of "Discord Bot Creation" should be the value of `DISCORD_TOKEN`
+6. Run "python thenewboston.py" in the terminal (Will not work well until the API is set up, as you have no DB yet)
 
 ## API
 
