@@ -8,7 +8,9 @@ import requests
 from django.conf import settings
 import django
 from asgiref.sync import sync_to_async
+from dotenv import load_dotenv
 
+load_dotenv()
 sys.path.append(os.getcwd() + '/API')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "API.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
@@ -21,13 +23,14 @@ from main.models import User, Server
 directory = os.getcwd()
 file_directory = directory + "/files"
 
-client = commands.Bot(command_prefix='>')
+bot_prefix = os.environ.get('BOT_PREFIX')
+token = os.environ.get('DISCORD_TOKEN')
+manager_id = int(os.environ.get('MANAGER_ID'))
+bot_wallet = os.environ.get('BOT_WALLET')
+if None in [bot_prefix, bot_wallet, token, manager_id]:
+    raise Exception("Please configure environment variables properly!")
 
-token = open(file_directory + "/token.txt","r").read()
-
-manager_id = 264475723283038208 # discord ID of the person managing the bot
-
-bot_wallet = "07ff04c084cc12f3fbb89d15e04c6bf54500f88f5191a7db653cb10889f650e6"
+client = commands.Bot(command_prefix=bot_prefix)
 
 
 class Register:
