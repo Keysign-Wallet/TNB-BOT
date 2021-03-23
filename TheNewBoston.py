@@ -73,6 +73,8 @@ async def register(ctx, address=None):
 
 	if address == None:
 		await ctx.send(f"To register your address, use the command `>register [address]`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `>verify` to confirm your address.")
+	elif len(address) < 64:
+		await ctx.send("Please enter a valid address!")
 	else:
 		users = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
 		owned = await sync_to_async(User.objects.filter)(Address=address)
