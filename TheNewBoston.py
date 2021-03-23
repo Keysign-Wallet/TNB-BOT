@@ -77,16 +77,26 @@ async def register(ctx, address=None):
 		users = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
 		owned = await sync_to_async(User.objects.filter)(Address=address)
 		other = False
+		potential = None
 
 		for pending in address_holder:
 			if pending.address == address:
 				other = True
+				potential = pending
 
 		if any(users):
 			await ctx.send(f"You already have a registered address: `{users[0].Address}`")
 			return
-		elif other or any(owned):
-			await ctx.send(f"Someone else is already registering this address, or owns it.")
+		elif other:
+			if potential.user_id = ctx.author.id:
+				address_holder.remove(potential)
+				address_holder.append(Register(ctx.author.id, address))
+				await ctx.send(f"Succesfully re-registered with new address. You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `>verify` to confirm the address.")
+				return
+			await ctx.send(f"Someone else is already registering this address")
+			return
+		elif any(owned):
+			await ctx.send(f"Someone else is already owns this address.")
 			return
 		else:
 			address_holder.append(Register(ctx.author.id, address))
