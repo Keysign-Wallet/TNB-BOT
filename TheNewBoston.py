@@ -90,7 +90,7 @@ async def register(ctx, address=None):
 			await ctx.send(f"You already have a registered address: `{users[0].Address}`")
 			return
 		elif other:
-			if potential.user_id = ctx.author.id:
+			if potential.user_id == ctx.author.id:
 				address_holder.remove(potential)
 				address_holder.append(Register(ctx.author.id, address))
 				await ctx.send(f"Succesfully re-registered with new address. You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `>verify` to confirm the address.")
