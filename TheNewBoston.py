@@ -134,9 +134,20 @@ async def status(ctx, member: discord.Member=None):
 
 	if not member:
 		member = ctx.author
+
 	records = await sync_to_async(User.objects.filter)(DiscordID=member.id)
+
 	if any(records):
-		await ctx.send(f"{member.name} has a verified address at `{records[0].Address}`")
+		user_address = records[0].Address
+
+		r = requests.get(f"http://54.241.124.162/accounts/{user_address}/balance?format=json")
+		info = r.json()
+
+		amount = 0
+		if any(info):
+			amount = info["balance"]
+
+		await ctx.send(f"{member.name} has a verified address at `{user_address}`\n\nTheir wallet contains {amount} coins.")
 	else:
 		await ctx.send(f"No address could be found for {member.name}")
 
