@@ -210,7 +210,12 @@ async def clear(ctx, amount=100):
 
 @client.command(pass_context=True, brief="Set commands channel")
 @commands.has_permissions(administrator=True)
-async def channel(ctx, channel: discord.TextChannel):
+async def channel(ctx, channel: discord.TextChannel=None):
+	if not channel:
+		channel=ctx.channel
+		
+	query = Server(ServerID=int(ctx.guild.id), ChannelID=int(channel.id))
+	query.save()
 	server_list.append(Guild(int(ctx.guild.id), int(channel.id)))
 	embed = discord.Embed(title="Settings changed", description=f"Commands channel set to: {channel.mention}", color=0xff0000)
 	await ctx.send(embed=embed)
