@@ -167,6 +167,18 @@ async def earn(ctx):
 
 	embed = discord.Embed(title="Earn Coins", description="To earn coins, try completing some tasks: https://thenewboston.com/tasks/All", color=0xff0000)
 	await ctx.send(embed=embed)
+
+@client.command(pass_context=True, brief="See statistics of the bot")
+async def stats(ctx):
+	for server in server_list:
+		if server.server_id == ctx.guild.id:
+			if ctx.channel.id != server.channel_id:
+				return
+
+	embed = discord.Embed(title="Bot Stats", color=0xff0000)
+	embed.add_field(name='Servers', value=str(len(client.guilds)))
+	embed.add_field(name='Users', value=str(len(await sync_to_async(User.objects.filter)())))
+	await ctx.send(embed=embed)
 # ------------------------------------------------------------------------------------ Administrative ------------------------------------------------------------------------------------
 
 
