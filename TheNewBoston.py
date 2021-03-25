@@ -2,10 +2,8 @@ import os
 import sys
 import asyncio
 import discord
-from discord.voice_client import VoiceClient
 from discord.ext import commands
 import requests
-from django.conf import settings
 import django
 from asgiref.sync import sync_to_async
 from dotenv import load_dotenv
@@ -179,7 +177,7 @@ async def kill(ctx):
 async def kick(ctx, member: discord.Member, *, reason=None):
 	embed = discord.Embed(title="Member kicked.", description=f"Member kicked: {member.mention}\nReason: {reason}", color=0xff0000)
 	await ctx.message.delete()
-	message = await ctx.send(embed=embed)
+	await ctx.send(embed=embed)
 	await member.kick(reason=reason)
 
 @client.command(pass_context=True, brief="ban member")
@@ -187,7 +185,7 @@ async def kick(ctx, member: discord.Member, *, reason=None):
 async def ban(ctx, member: discord.Member, *, reason=None):
 	embed = discord.Embed(title="Member banned.", description=f"Member banned: {member.mention}\nReason: {reason}", color=0xff0000)
 	await ctx.message.delete()
-	message = await ctx.send(embed=embed)
+	await ctx.send(embed=embed)
 	await member.ban(reason=reason)
 
 @client.command(pass_context=True, brief="clear messages")
@@ -203,9 +201,8 @@ async def clear(ctx, amount=100):
 @client.command(pass_context=True, brief="Set commands channel")
 @commands.has_permissions(administrator=True)
 async def channel(ctx, channel: discord.TextChannel):
-	query = Server(ServerID=int(ctx.guild.id), ChannelID=int(channel.id))
 	server_list.append(Guild(int(ctx.guild.id), int(channel.id)))
 	embed = discord.Embed(title="Settings changed", description=f"Commands channel set to: {channel.mention}", color=0xff0000)
-	message = await ctx.send(embed=embed)
+	await ctx.send(embed=embed)
 
 client.run(token)
