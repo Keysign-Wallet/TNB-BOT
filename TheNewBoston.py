@@ -70,9 +70,11 @@ async def register(ctx, address=None):
 				return
 
 	if address == None:
-		await ctx.send(f"To register your address, use the command `>register [address]`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `>verify` to confirm your address.")
+		embed = discord.Embed(title="Register", description=f"To register your address, use the command `>register [address]`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `>verify` to confirm your address.", color=0xff0000)
+		await ctx.send(embed=embed)
 	elif len(address) < 64:
-		await ctx.send("Please enter a valid address!")
+		embed = discord.Embed(title="Invalid Address", description=f"Please enter a valid address!", color=0xff0000)
+		await ctx.send(embed=embed)
 	else:
 		users = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
 		owned = await sync_to_async(User.objects.filter)(Address=address)
@@ -85,7 +87,8 @@ async def register(ctx, address=None):
 				potential = pending
 
 		if any(users):
-			await ctx.send(f"You already have a registered address: `{users[0].Address}`")
+			embed = discord.Embed(title="Already Registered", description=f"You already have a registered address: `{users[0].Address}`", color=0xff0000)
+			await ctx.send(embed=embed)
 			return
 		elif other:
 			if potential.user_id == ctx.author.id:
@@ -93,14 +96,17 @@ async def register(ctx, address=None):
 				address_holder.append(Register(ctx.author.id, address))
 				await ctx.send(f"Succesfully re-registered with new address. You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `>verify` to confirm the address.")
 				return
-			await ctx.send(f"Someone else is already registering this address")
+			embed = discord.Embed(title="In Use", description=f"Someone else is already registering this address", color=0xff0000)
+			await ctx.send(embed=embed)
 			return
 		elif any(owned):
-			await ctx.send(f"Someone else is already owns this address.")
+			embed = discord.Embed(title="Already Owned", description=f"Someone else is already owns this address.", color=0xff0000)
+			await ctx.send(embed=embed)
 			return
 		else:
 			address_holder.append(Register(ctx.author.id, address))
-			await ctx.send(f"You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `>verify` to confirm the address.")
+			embed = discord.Embed(title="Send a Coin!", description=f"You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `>verify` to confirm the address.", color=0xff0000)
+			await ctx.send(embed=embed)
 
 
 @client.command(pass_context=True, brief="Verify address registration transaction")
@@ -121,7 +127,8 @@ async def verify(ctx):
 			else:
 				await ctx.send(f"No transaction detected from `{address.address}`")
 			return
-	await ctx.send("No address to verify. Did you make sure to use `>register [address]`?")
+	embed = discord.Embed(title="No Address", description=f"No address to verify. Did you make sure to use `{bot_prefix}register [address]`?", color=0xff0000)
+	await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Check the verification status of a user")
 async def status(ctx, member: discord.Member=None):
@@ -145,9 +152,11 @@ async def status(ctx, member: discord.Member=None):
 		if any(info):
 			amount = info["balance"]
 
-		await ctx.send(f"{member.name} has a verified address at `{user_address}`\n\nTheir wallet contains {amount} coins.")
+		embed = discord.Embed(title="Status", description=f"{member.name} has a verified address at `{user_address}`\n\nTheir wallet contains {amount} coins.", color=0xff0000)
+		await ctx.send(embed=embed)
 	else:
-		await ctx.send(f"No address could be found for {member.name}")
+		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {member.name}", color=0xff0000)
+		await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Ways to earn coins")
 async def earn(ctx):
@@ -156,7 +165,8 @@ async def earn(ctx):
 			if ctx.channel.id != server.channel_id:
 				return
 
-	await ctx.send("To earn coins, try completing some tasks: https://thenewboston.com/tasks/All")
+	embed = discord.Embed(title="Earn Coins", description="To earn coins, try completing some tasks: https://thenewboston.com/tasks/All", color=0xff0000)
+	await ctx.send(embed=embed)
 # ------------------------------------------------------------------------------------ Administrative ------------------------------------------------------------------------------------
 
 
