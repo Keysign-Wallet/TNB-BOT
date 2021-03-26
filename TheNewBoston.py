@@ -150,7 +150,7 @@ async def verify(ctx):
 			if any(info["results"]):
 				query = User(DiscordID=int(ctx.author.id), Address=address.address)
 				query.save()
-				newTX = Transaction(Type="DEPOSIT", TxID=tx["id"], Amount=int(tx['amount']))
+				newTX = Transaction(Type="DEPOSIT", TxID=info["results"][0]["id"], Amount=int(info["results"][0]['amount']))
 				newTX.save()
 				await ctx.send(f"Address `{address.address}` succesfully associated with {ctx.author.mention}")
 				address_holder.remove(address)
@@ -183,7 +183,7 @@ async def status(ctx, member: discord.Member=None):
 		if any(info):
 			amount = info["balance"]
 
-		embed = discord.Embed(title="Status", description=f"{member.name} has a verified address at `{user_address}`\nTheir wallet contains {amount} coins.\n\nTheir discord wallet contains {user_coins} coins", color=0xff0000)
+		embed = discord.Embed(title="Status", description=f"{member.name} has a verified address at `{user_address}`\nTheir wallet contains {amount} coin(s).\n\nTheir discord wallet contains {user_coins} coins", color=0xff0000)
 		await ctx.send(embed=embed)
 	else:
 		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {member.name}", color=0xff0000)
