@@ -21,8 +21,9 @@ Install python 3.9 to your computer, and make sure to include the "add to path" 
 3. In the new application, go to the "Bot" section
 4. Press "Add Bot" and then confirm the creation
 5. In the new "Bot" section, note the "token" as you will need to copy it for later
-6. Go to "OAuth2" and select the "bot" scope to generate an invite link to your bot
-7. Invite your bot to whatever discord server you would like to test the bot on.
+6. Enable "server members intent"
+7. Go to "OAuth2" and select the "bot" scope to generate an invite link to your bot
+8. Invite your bot to whatever discord server you would like to test the bot on.
 
 ## Bot
 

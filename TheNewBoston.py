@@ -13,7 +13,7 @@ sys.path.append(os.getcwd() + '/API')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "API.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
-from main.models import User, Server
+from main.models import User, Server, Transaction
 
 # ------------------------------------------------------------------------------------ Startup ------------------------------------------------------------------------------------
 
@@ -25,10 +25,13 @@ bot_prefix = os.environ.get('BOT_PREFIX')
 token = os.environ.get('DISCORD_TOKEN')
 manager_id = int(os.environ.get('MANAGER_ID'))
 bot_wallet = os.environ.get('BOT_WALLET')
+
 if None in [bot_prefix, bot_wallet, token, manager_id]:
     raise Exception("Please configure environment variables properly!")
 
-client = commands.Bot(command_prefix=bot_prefix)
+intents = discord.Intents.default()
+intents.members = True
+client = commands.Bot(command_prefix=bot_prefix, intents=intents)
 
 
 class Register:
@@ -59,6 +62,28 @@ async def on_ready():
 	print(f"Discord Version: {discord.__version__}")
 	print ("------------------------------------")
 	await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="TNBC grow"))
+
+# ------------------------------------------------------------------------------------ Constant ------------------------------------------------------------------------------------
+
+async def constant():
+	while True:
+		await asyncio.sleep(3)
+		r = requests.get(f"http://13.57.215.62/bank_transactions?format=json&limit=20&recipient={bot_wallet}") 
+		info = r.json()
+		deposits = await sync_to_async(Transaction.objects.filter)(Type="DEPOSIT")
+		for tx in info["results"]:
+			print(tx)
+			if tx["id"] not in [tx.TxID for tx in deposits]:
+				try:
+					user = await sync_to_async(User.objects.filter)(Address=tx['block']['sender'])
+					await sync_to_async(user.update)(Coins=user[0].Coins+int(tx['amount']))
+				newTX = Transaction(Type="DEPOSIT", TxID=tx["id"], Amount=int(tx['amount']))
+				newTX.save()
+
+				try:
+					user = await client.fetch_user(user[0].DiscordID)
+					embed = discord.Embed(title="Success", description=f"Succesfully deposited {tx['amount']} coin(s) into your account", color=0xff0000)
+					await user.send(embed=embed)
 
 # ------------------------------------------------------------------------------------ User functions ------------------------------------------------------------------------------------
 
@@ -144,6 +169,7 @@ async def status(ctx, member: discord.Member=None):
 
 	if any(records):
 		user_address = records[0].Address
+		user_coins = records[0].Coins
 
 		r = requests.get(f"http://54.241.124.162/accounts/{user_address}/balance?format=json")
 		info = r.json()
@@ -152,11 +178,12 @@ async def status(ctx, member: discord.Member=None):
 		if any(info):
 			amount = info["balance"]
 
-		embed = discord.Embed(title="Status", description=f"{member.name} has a verified address at `{user_address}`\n\nTheir wallet contains {amount} coins.", color=0xff0000)
+		embed = discord.Embed(title="Status", description=f"{member.name} has a verified address at `{user_address}`\nTheir wallet contains {amount} coins.\n\nTheir discord wallet contains {user_coins} coins", color=0xff0000)
 		await ctx.send(embed=embed)
 	else:
 		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {member.name}", color=0xff0000)
 		await ctx.send(embed=embed)
+
 
 @client.command(pass_context=True, brief="Ways to earn coins")
 async def earn(ctx):
@@ -167,6 +194,18 @@ async def earn(ctx):
 
 	embed = discord.Embed(title="Earn Coins", description="To earn coins, try completing some tasks: https://thenewboston.com/tasks/All", color=0xff0000)
 	await ctx.send(embed=embed)
+
+
+@client.command(pass_context=True, brief="Ways to earn coins")
+async def deposit(ctx):
+	for server in server_list:
+		if server.server_id == ctx.guild.id:
+			if ctx.channel.id != server.channel_id:
+				return
+
+	embed = discord.Embed(title="Deposit", description=f"To deposit coins, simply make sure you are registered (`{bot_prefix}status`) and then send coins from your wallet to `{bot_wallet}`", color=0xff0000)
+	await ctx.send(embed=embed)
+
 
 @client.command(pass_context=True, brief="See statistics of the bot")
 async def stats(ctx):
@@ -232,4 +271,6 @@ async def channel(ctx, channel: discord.TextChannel=None):
 	embed = discord.Embed(title="Settings changed", description=f"Commands channel set to: {channel.mention}", color=0xff0000)
 	await ctx.send(embed=embed)
 
+
+client.loop.create_task(constant())
 client.run(token)

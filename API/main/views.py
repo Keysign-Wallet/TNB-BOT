@@ -14,5 +14,5 @@ def users(request):
 		users = users.filter(DiscordID=userid)
 	if address:
 		users = users.filter(address=address)
-	results = [{'DiscordID': x.DiscordID, 'Address': x.Address, 'PaymentDue': x.PaymentDue, 'VIP': x.VIP} for x in users ]
+	results = [{'DiscordID': x.DiscordID, 'Address': x.Address, 'Coins': x.Coins} for x in users]
 	return JsonResponse({'results': results})
