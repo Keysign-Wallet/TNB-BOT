@@ -72,7 +72,6 @@ async def constant():
 		info = r.json()
 		deposits = await sync_to_async(Transaction.objects.filter)(Type="DEPOSIT")
 		for tx in info["results"]:
-			print(tx)
 			if tx["id"] not in [tx.TxID for tx in deposits]:
 				try:
 					user = await sync_to_async(User.objects.filter)(Address=tx['block']['sender'])
@@ -151,6 +150,8 @@ async def verify(ctx):
 			if any(info["results"]):
 				query = User(DiscordID=int(ctx.author.id), Address=address.address)
 				query.save()
+				newTX = Transaction(Type="DEPOSIT", TxID=tx["id"], Amount=int(tx['amount']))
+				newTX.save()
 				await ctx.send(f"Address `{address.address}` succesfully associated with {ctx.author.mention}")
 				address_holder.remove(address)
 			else:
