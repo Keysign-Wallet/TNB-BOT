@@ -200,7 +200,7 @@ async def earn(ctx):
 	await ctx.send(embed=embed)
 
 
-@client.command(pass_context=True, brief="Ways to earn coins")
+@client.command(pass_context=True, brief="How to deposit coins to the bot")
 async def deposit(ctx):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
