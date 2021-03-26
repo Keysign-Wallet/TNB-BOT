@@ -177,7 +177,7 @@ async def stats(ctx):
 
 	embed = discord.Embed(title="Bot Stats", color=0xff0000)
 	embed.add_field(name='Servers', value=str(len(client.guilds)))
-	embed.add_field(name='Users', value=str(len(await sync_to_async(User.objects.filter)())))
+	embed.add_field(name='Users', value=str(len(await sync_to_async(User.objects.all)())))
 	await ctx.send(embed=embed)
 # ------------------------------------------------------------------------------------ Administrative ------------------------------------------------------------------------------------
 
