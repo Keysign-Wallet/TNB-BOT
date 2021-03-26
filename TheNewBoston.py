@@ -77,6 +77,8 @@ async def constant():
 				try:
 					user = await sync_to_async(User.objects.filter)(Address=tx['block']['sender'])
 					await sync_to_async(user.update)(Coins=user[0].Coins+int(tx['amount']))
+				except Exception as e:
+					print(e)
 				newTX = Transaction(Type="DEPOSIT", TxID=tx["id"], Amount=int(tx['amount']))
 				newTX.save()
 
@@ -84,6 +86,8 @@ async def constant():
 					user = await client.fetch_user(user[0].DiscordID)
 					embed = discord.Embed(title="Success", description=f"Succesfully deposited {tx['amount']} coin(s) into your account", color=0xff0000)
 					await user.send(embed=embed)
+				except Exception as e:
+					print(e)
 
 # ------------------------------------------------------------------------------------ User functions ------------------------------------------------------------------------------------
 
