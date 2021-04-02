@@ -183,10 +183,15 @@ async def status(ctx, member: discord.Member=None):
 		if any(info):
 			amount = info["balance"]
 
-		embed = discord.Embed(title="Status", description=f"{member.name} has a verified address at `{user_address}`\nTheir wallet contains {amount} coin(s).\n\nTheir discord wallet contains {user_coins} coins", color=0xff0000)
+		embed = discord.Embed(color=0xff0000)
+		embed.set_author(name=member.name, icon_url=member.avatar_url)
+		embed.add_field(name='Address', value=user_address, inline=False)
+		embed.add_field(name='Balance', value=amount)
+		embed.add_field(name='Discord Account Balance', value=user_coins)
 		await ctx.send(embed=embed)
 	else:
 		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {member.name}", color=0xff0000)
+		embed.set_author(name=member.name, icon_url=member.avatar_url)
 		await ctx.send(embed=embed)
 
 
