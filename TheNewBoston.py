@@ -259,7 +259,6 @@ async def rain(ctx, amount, people):
 	users = []
 
 	def predicate(message):
-		print("yeye")
 		return time.time() - 600 >= message.created_at.timestamp()
 
 	for channel in ctx.guild.text_channels:
@@ -283,15 +282,15 @@ async def rain(ctx, amount, people):
 		await ctx.send(embed=embed)
 		return		
 
-	eligable = 0
+	eligible = 0
 	for user in users:
 		records = await sync_to_async(User.objects.filter)(DiscordID=user.id)
 
 		if any(records):
-			eligable +=1
+			eligible +=1
 
-	if eligable < people:
-		embed = discord.Embed(title="Not enough eligable.", description=f"This server only has {eligable} eligable (registered and active) users out of your specified {int(people)}", color=0xff0000)
+	if eligible < people:
+		embed = discord.Embed(title="Not enough eligible.", description=f"This server only has {eligible} eligible (registered and active) users out of your specified {int(people)}", color=0xff0000)
 		await ctx.send(embed=embed)
 		return
 
