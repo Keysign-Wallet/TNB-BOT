@@ -319,6 +319,45 @@ async def rain(ctx, amount, people):
 	embed.add_field(name='Amount', value=amount)
 	await ctx.send(embed=embed)
 
+@client.command(pass_context=True, brief="Send coins from your Discord wallet to any registered user")
+async def withdraw(ctx, amount):
+	for server in server_list:
+		if server.server_id == ctx.guild.id:
+			if ctx.channel.id != server.channel_id:
+				return
+	invalid = False
+	try:
+		amount = int(amount)
+	except:
+		invalid = True
+
+	if amount <= 0:
+		invalid = True
+
+	if invalid:
+		embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=0xff0000)
+		await ctx.send(embed=embed)
+		return
+
+	records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
+
+	if any(records):
+		if records[0].Coins < amount:
+			embed = discord.Embed(title="Inadequate Funds", description=f"You do not have enough coins in your discord wallet. \n Use `>deposit` to add more coins", color=0xff0000)
+			embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+			await ctx.send(embed=embed)
+		else:
+			#TODO: post transactions to bank
+			embed = discord.Embed(title="Coins Withdrawn!", description=f"{amount} coins have been withdrawn to {records[0].Address} succesfully. \n Use `>status` to check your new balance.", color=0xff0000)
+			embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+			await ctx.send(embed=embed)
+	else:
+		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {ctx.author.name}", color=0xff0000)
+		embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+		await ctx.send(embed=embed)
+
+
+
 # ------------------------------------------------------------------------------------ Administrative ------------------------------------------------------------------------------------
 
 
