@@ -8,6 +8,9 @@ import django
 from asgiref.sync import sync_to_async
 from dotenv import load_dotenv
 
+import time
+import secrets
+
 load_dotenv()
 sys.path.append(os.getcwd() + '/API')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "API.settings")
@@ -227,7 +230,96 @@ async def stats(ctx):
 	embed = discord.Embed(title="Bot Stats", color=0xff0000)
 	embed.add_field(name='Servers', value=str(len(client.guilds)))
 	embed.add_field(name='Users', value=str(len(await sync_to_async(User.objects.all)())))
+
+@client.command(pass_context=True, brief="Rain coins on random registered members in the server")
+async def rain(ctx, amount, people):
+	for server in server_list:
+		if server.server_id == ctx.guild.id:
+			if ctx.channel.id != server.channel_id:
+				return
+
+	invalid = False
+
+	try:
+		amount = int(amount)
+		people = int(people)
+	except:
+		invalid = True
+
+	if amount <= 0 or people <= 1:
+		invalid = True
+
+	if invalid:
+		embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=0xff0000)
+		await ctx.send(embed=embed)
+		return
+
+	winners = []
+
+	users = []
+
+	def predicate(message):
+		print("yeye")
+		return time.time() - 600 >= message.created_at.timestamp()
+
+	for channel in ctx.guild.text_channels:
+		async for elem in channel.history().filter(predicate):
+			if elem.author not in users and elem.author != ctx.author:
+				users.append(elem.author)
+
+	author_records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
+	user_coins = 0
+
+	if any(author_records):
+		user_coins = author_records[0].Coins
+		if user_coins >= amount*people:
+			pass
+		else:
+			embed = discord.Embed(title="Not enough coins.", description=f"You only have {user_coins} out of {amount*people} coins in your wallet. You need to deposit coins to {bot_wallet} to rain.", color=0xff0000)
+			await ctx.send(embed=embed)
+			return			
+	else:
+		embed = discord.Embed(title="Not registered.", description=f"You need to be registered to do a rain", color=0xff0000)
+		await ctx.send(embed=embed)
+		return		
+
+	eligable = 0
+	for user in users:
+		records = await sync_to_async(User.objects.filter)(DiscordID=user.id)
+
+		if any(records):
+			eligable +=1
+
+	if eligable < people:
+		embed = discord.Embed(title="Not enough eligable.", description=f"This server only has {eligable} eligable (registered and active) users out of your specified {int(people)}", color=0xff0000)
+		await ctx.send(embed=embed)
+		return
+
+	for decision in range(people):
+		while True:
+			potential_winner = secrets.choice(users)
+
+			if potential_winner not in winners:
+				records = await sync_to_async(User.objects.filter)(DiscordID=potential_winner.id)
+
+				if any(records):
+					winners.append(potential_winner)
+					break
+
+	await sync_to_async(author_records.update)(Coins=author_records[0].Coins-(amount*people))
+
+	winlist = ""
+	for winner in winners:
+		winlist += winner.mention + "\n"
+
+		user = await sync_to_async(User.objects.filter)(DiscordID=winner.id)
+		await sync_to_async(user.update)(Coins=user[0].Coins+amount)
+
+	embed = discord.Embed(title=f"Rain by {ctx.author.mention}!", color=0xff0000)
+	embed.add_field(name='Winners', value=winlist)
+	embed.add_field(name='Amount', value=amount)
 	await ctx.send(embed=embed)
+
 # ------------------------------------------------------------------------------------ Administrative ------------------------------------------------------------------------------------
 
 
