@@ -7,6 +7,8 @@ import requests
 import django
 from asgiref.sync import sync_to_async
 from dotenv import load_dotenv
+import nacl.encoding
+import nacl.signing
 
 import time
 import secrets
@@ -27,9 +29,10 @@ file_directory = directory + "/files"
 bot_prefix = os.environ.get('BOT_PREFIX')
 token = os.environ.get('DISCORD_TOKEN')
 manager_id = int(os.environ.get('MANAGER_ID'))
-bot_wallet = os.environ.get('BOT_WALLET')
+signing_key = nacl.signing.SigningKey(str.encode(os.environ.get('BOT_SIGNING_KEY')), encoder=nacl.encoding.HexEncoder)
+bot_wallet = signing_key.verify_key.encode(encoder=nacl.encoding.HexEncoder).decode('utf-8')
 
-if None in [bot_prefix, bot_wallet, token, manager_id]:
+if None in [bot_prefix, signing_key, token, manager_id]:
     raise Exception("Please configure environment variables properly!")
 
 intents = discord.Intents.default()
