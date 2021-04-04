@@ -259,7 +259,6 @@ async def rain(ctx, amount, people):
 	users = []
 
 	def predicate(message):
-		print("yeye")
 		return time.time() - 600 >= message.created_at.timestamp()
 
 	for channel in ctx.guild.text_channels:
@@ -283,21 +282,22 @@ async def rain(ctx, amount, people):
 		await ctx.send(embed=embed)
 		return		
 
-	eligable = 0
+	eligable = []
+
 	for user in users:
 		records = await sync_to_async(User.objects.filter)(DiscordID=user.id)
 
 		if any(records):
-			eligable +=1
+			eligable.append(user)
 
-	if eligable < people:
-		embed = discord.Embed(title="Not enough eligable.", description=f"This server only has {eligable} eligable (registered and active) users out of your specified {int(people)}", color=0xff0000)
+	if len(eligable) < people:
+		embed = discord.Embed(title="Not enough eligable.", description=f"This server only has {len(eligable)} eligable (registered and active) users out of your specified {people}", color=0xff0000)
 		await ctx.send(embed=embed)
 		return
 
 	for decision in range(people):
 		while True:
-			potential_winner = secrets.choice(users)
+			potential_winner = secrets.choice(eligable)
 
 			if potential_winner not in winners:
 				records = await sync_to_async(User.objects.filter)(DiscordID=potential_winner.id)
