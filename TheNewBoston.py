@@ -315,7 +315,7 @@ async def rain(ctx, amount, people):
 		user = await sync_to_async(User.objects.filter)(DiscordID=winner.id)
 		await sync_to_async(user.update)(Coins=user[0].Coins+amount)
 
-	embed = discord.Embed(title=f"Rain by {ctx.author.mention}!", color=0xff0000)
+	embed = discord.Embed(title=f"Rain by {ctx.author.name}!", color=0xff0000)
 	embed.add_field(name='Winners', value=winlist)
 	embed.add_field(name='Amount', value=amount)
 	await ctx.send(embed=embed)
