@@ -356,28 +356,38 @@ async def withdraw(ctx, amount):
 				'balance_lock': balance_lock,
 				'txs': [
 					{
-						'amount': bank_config['default_transaction_fee'],
+						'amount': int(amount),
+						'recipient': records[0].Address
+					},
+					{
+						'amount': int(bank_config['default_transaction_fee']),
 						'fee': 'BANK',
 						'recipient': bank_config['account_number'],
 					},
 					{
-						'amount': bank_config['primary_validator']['default_transaction_fee'],
+						'amount': int(bank_config['primary_validator']['default_transaction_fee']),
 						'fee': 'PRIMARY_VALIDATOR',
 						'recipient': bank_config['primary_validator']['account_number'],
-					},
-					{
-						'amount': amount,
-						'recipient': records[0].Address
 					}
 				]
 			}
-			data = {'account_number': bot_wallet, 'message': message, 'signature': signing_key.sign(str.encode(str(message)), encoder=nacl.encoding.HexEncoder).signature}
+			data = {'account_number': bot_wallet, 'message': message, 'signature': signing_key.sign(str.encode(str(message)), encoder=nacl.encoding.HexEncoder).signature.decode("utf-8")}
 			print(data)
-			r = requests.post('http://13.57.215.62/blocks', data=data).json()
-			print(r)
-			embed = discord.Embed(title="Coins Withdrawn!", description=f"{amount} coins have been withdrawn to {records[0].Address} succesfully. \n Use `>status` to check your new balance.", color=0xff0000)
-			embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-			await ctx.send(embed=embed)
+			r = requests.post('http://13.57.215.62/blocks', data=data)
+			if r:
+				try:
+					user = await sync_to_async(User.objects.filter)(Address=records[0].Address)
+					await sync_to_async(user.update)(Coins=user[0].Coins-amount)
+				except Exception as e:
+					print(e)
+				embed = discord.Embed(title="Coins Withdrawn!", description=f"{amount} coins have been withdrawn to {records[0].Address} succesfully. \n Use `>status` to check your new balance.", color=0xff0000)
+				embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+				await ctx.send(embed=embed)
+			else:
+				print(r.json())
+				embed = discord.Embed(title="Error!", description=f"Please try again later.", color=0xff0000)
+				embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+				await ctx.send(embed=embed)
 	else:
 		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {ctx.author.name}", color=0xff0000)
 		embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
