@@ -350,7 +350,31 @@ async def withdraw(ctx, amount):
 			embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 			await ctx.send(embed=embed)
 		else:
-			#TODO: post transactions to bank
+			bank_config = requests.get('http://13.57.215.62/config?format=json').json()
+			balance_lock = requests.get(f"{bank_config['primary_validator']['protocol']}://{bank_config['primary_validator']['ip_address']}:{bank_config['primary_validator']['port'] or 0}/accounts/{bot_wallet}/balance_lock?format=json").json()['balance_lock']
+			message = {
+				'balance_lock': balance_lock,
+				'txs': [
+					{
+						'amount': bank_config['default_transaction_fee'],
+						'fee': 'BANK',
+						'recipient': bank_config['account_number'],
+					},
+					{
+						'amount': bank_config['primary_validator']['default_transaction_fee'],
+						'fee': 'PRIMARY_VALIDATOR',
+						'recipient': bank_config['primary_validator']['account_number'],
+					},
+					{
+						'amount': amount,
+						'recipient': records[0].Address
+					}
+				]
+			}
+			data = {'account_number': bot_wallet, 'message': message, 'signature': signing_key.sign(str.encode(str(message)), encoder=nacl.encoding.HexEncoder).signature}
+			print(data)
+			r = requests.post('http://13.57.215.62/blocks', data=data).json()
+			print(r)
 			embed = discord.Embed(title="Coins Withdrawn!", description=f"{amount} coins have been withdrawn to {records[0].Address} succesfully. \n Use `>status` to check your new balance.", color=0xff0000)
 			embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 			await ctx.send(embed=embed)
