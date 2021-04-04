@@ -285,21 +285,22 @@ async def rain(ctx, amount, people):
 		await ctx.send(embed=embed)
 		return		
 
-	eligible = 0
+	eligible = []
+
 	for user in users:
 		records = await sync_to_async(User.objects.filter)(DiscordID=user.id)
 
 		if any(records):
-			eligible +=1
+			eligible.append(user)
 
-	if eligible < people:
-		embed = discord.Embed(title="Not enough eligible.", description=f"This server only has {eligible} eligible (registered and active) users out of your specified {int(people)}", color=0xff0000)
+	if len(eligible) < people:
+		embed = discord.Embed(title="Not enough eligable.", description=f"This server only has {len(eligible)} eligible (registered and active) users out of your specified {people}", color=0xff0000)
 		await ctx.send(embed=embed)
 		return
 
 	for decision in range(people):
 		while True:
-			potential_winner = secrets.choice(users)
+			potential_winner = secrets.choice(eligible)
 
 			if potential_winner not in winners:
 				records = await sync_to_async(User.objects.filter)(DiscordID=potential_winner.id)
@@ -317,7 +318,7 @@ async def rain(ctx, amount, people):
 		user = await sync_to_async(User.objects.filter)(DiscordID=winner.id)
 		await sync_to_async(user.update)(Coins=user[0].Coins+amount)
 
-	embed = discord.Embed(title=f"Rain by {ctx.author.mention}!", color=0xff0000)
+	embed = discord.Embed(title=f"Rain by {ctx.author.name}!", color=0xff0000)
 	embed.add_field(name='Winners', value=winlist)
 	embed.add_field(name='Amount', value=amount)
 	await ctx.send(embed=embed)
