@@ -325,6 +325,7 @@ async def rain(ctx, amount, people):
 
 
 @client.command(pass_context=True, brief="secret")
+@commands.has_permissions(administrator=True)
 async def kill(ctx):
 	if int(ctx.author.id) == manager_id:
 		await ctx.message.delete()
