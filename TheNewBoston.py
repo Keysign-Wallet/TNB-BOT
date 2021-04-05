@@ -116,7 +116,7 @@ async def register(ctx, address=None):
 		potential = None
 
 		for pending in address_holder:
-			if pending.address == address:
+			if pending.user_id == ctx.author.id or pending.address == address:
 				other = True
 				potential = pending
 
@@ -126,9 +126,10 @@ async def register(ctx, address=None):
 			return
 		elif other:
 			if potential.user_id == ctx.author.id:
-				address_holder.remove(potential)
+				address_holder.remove([x for x in address_holder if x.address == potential.address][0])
 				address_holder.append(Register(ctx.author.id, address))
-				await ctx.send(f"Succesfully re-registered with new address. You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `>verify` to confirm the address.")
+				embed = discord.Embed(title="Send a Coin!", description=f"Succesfully re-registered with new address. You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `>verify` to confirm the address.", color=0xff0000)
+				await ctx.send(embed=embed)
 				return
 			embed = discord.Embed(title="In Use", description=f"Someone else is already registering this address", color=0xff0000)
 			await ctx.send(embed=embed)
@@ -294,7 +295,7 @@ async def rain(ctx, amount, people):
 			eligible.append(user)
 
 	if len(eligible) < people:
-		embed = discord.Embed(title="Not enough eligable.", description=f"This server only has {len(eligible)} eligible (registered and active) users out of your specified {people}", color=0xff0000)
+		embed = discord.Embed(title="Not enough eligible.", description=f"This server only has {len(eligible)} eligible (registered and active) users out of your specified {people}", color=0xff0000)
 		await ctx.send(embed=embed)
 		return
 
@@ -400,6 +401,7 @@ async def withdraw(ctx, amount):
 
 
 @client.command(pass_context=True, brief="secret")
+@commands.has_permissions(administrator=True)
 async def kill(ctx):
 	if int(ctx.author.id) == manager_id:
 		await ctx.message.delete()
