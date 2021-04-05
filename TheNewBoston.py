@@ -285,7 +285,7 @@ async def rain(ctx, amount, people):
 
 	for channel in ctx.guild.text_channels:
 		async for elem in channel.history().filter(predicate):
-			if elem.author not in users and elem.author != ctx.author:
+			if elem.author not in users and elem.author != ctx.author and elem.author.id != client.user.id:
 				users.append(elem.author)
 
 	author_records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
