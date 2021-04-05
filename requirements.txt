@@ -2,3 +2,4 @@ django
 discord.py
 requests
 python-dotenv
+pynacl

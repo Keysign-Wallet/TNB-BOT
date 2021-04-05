@@ -7,6 +7,10 @@ import requests
 import django
 from asgiref.sync import sync_to_async
 from dotenv import load_dotenv
+from nacl.encoding import HexEncoder
+import nacl.signing
+from operator import itemgetter
+import json
 
 import time
 import secrets
@@ -27,9 +31,10 @@ file_directory = directory + "/files"
 bot_prefix = os.environ.get('BOT_PREFIX')
 token = os.environ.get('DISCORD_TOKEN')
 manager_id = int(os.environ.get('MANAGER_ID'))
-bot_wallet = os.environ.get('BOT_WALLET')
+signing_key = nacl.signing.SigningKey(str.encode(os.environ.get('BOT_SIGNING_KEY')), encoder=nacl.encoding.HexEncoder)
+bot_wallet = signing_key.verify_key.encode(encoder=nacl.encoding.HexEncoder).decode('utf-8')
 
-if None in [bot_prefix, bot_wallet, token, manager_id]:
+if None in [bot_prefix, signing_key, token, manager_id]:
     raise Exception("Please configure environment variables properly!")
 
 intents = discord.Intents.default()
@@ -90,6 +95,22 @@ async def constant():
 					await user.send(embed=embed)
 				except Exception as e:
 					print(e)
+
+#------------------------------------------------------------------------------------------Utils------------------------------------------------------------------------------------------
+
+def generate_block(balance_lock, transactions, signing_key):
+    account_number = signing_key.verify_key.encode(encoder=HexEncoder).decode('utf-8')
+    message = {
+        'balance_key': balance_lock,
+        'txs': sorted(transactions, key=itemgetter('recipient'))
+    }
+    signature = signing_key.sign(json.dumps(message, separators=(',', ':'), sort_keys=True).encode('utf-8')).signature.hex()
+    block = {
+        'account_number': account_number,
+        'message': message,
+        'signature': signature
+    }
+    return json.dumps(block)
 
 # ------------------------------------------------------------------------------------ User functions ------------------------------------------------------------------------------------
 
@@ -320,6 +341,88 @@ async def rain(ctx, amount, people):
 	embed.add_field(name='Winners', value=winlist)
 	embed.add_field(name='Amount', value=amount)
 	await ctx.send(embed=embed)
+
+@client.command(pass_context=True, brief="Send coins from your Discord wallet to any registered user")
+async def withdraw(ctx, amount):
+	for server in server_list:
+		if server.server_id == ctx.guild.id:
+			if ctx.channel.id != server.channel_id:
+				return
+	invalid = False
+	try:
+		amount = int(amount)
+	except:
+		invalid = True
+
+	if amount <= 0:
+		invalid = True
+
+	if invalid:
+		embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=0xff0000)
+		await ctx.send(embed=embed)
+		return
+
+	records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
+
+	if any(records):
+		if records[0].Coins < amount:
+			embed = discord.Embed(title="Inadequate Funds", description=f"You do not have enough coins in your discord wallet. \n Use `>deposit` to add more coins", color=0xff0000)
+			embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+			await ctx.send(embed=embed)
+		else:
+			bank_config = requests.get('http://13.57.215.62/config?format=json').json()
+			balance_lock = requests.get(f"{bank_config['primary_validator']['protocol']}://{bank_config['primary_validator']['ip_address']}:{bank_config['primary_validator']['port'] or 0}/accounts/{bot_wallet}/balance_lock?format=json").json()['balance_lock']
+			txs = [
+					{
+						'amount': int(amount),
+						'recipient': records[0].Address
+					},
+					{
+						'amount': int(bank_config['default_transaction_fee']),
+						'fee': 'BANK',
+						'recipient': bank_config['account_number'],
+					},
+					{
+						'amount': int(bank_config['primary_validator']['default_transaction_fee']),
+						'fee': 'PRIMARY_VALIDATOR',
+						'recipient': bank_config['primary_validator']['account_number'],
+					}
+				]
+			
+			data = generate_block(balance_lock, txs, signing_key)
+			headers = {
+				'Connection': 'keep-alive',
+				'Accept': 'application/json, text/plain, */*',
+				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TNBAccountManager/1.0.0-alpha.43 Chrome/83.0.4103.122 Electron/9.4.0 Safari/537.36',
+				'Content-Type': 'application/json',
+				'Accept-Language': 'en-US'
+			}
+			r = requests.request("POST", 'http://13.57.215.62/blocks', headers=headers, data=data)
+			if r:
+				try:
+					user = await sync_to_async(User.objects.filter)(Address=records[0].Address)
+					await sync_to_async(user.update)(Coins=user[0].Coins-amount)
+				except Exception as e:
+					print(e)
+				res = requests.get(f'http://13.57.215.62/bank_transactions?limit=1&recipient={records[0].Address}&amount={amount}').json()['results'][0]
+				if r.json()['id'] == res['block']['id']:
+					newTX = Transaction(Type="WITHDRAW", TxID=res["id"], Amount=int(res['amount']))
+					newTX.save()
+
+				embed = discord.Embed(title="Coins Withdrawn!", description=f"{amount} coins have been withdrawn to {records[0].Address} succesfully. \n Use `>status` to check your new balance.", color=0xff0000)
+				embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+				await ctx.send(embed=embed)
+			else:
+				print(r.json())
+				embed = discord.Embed(title="Error!", description=f"Please try again later.", color=0xff0000)
+				embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+				await ctx.send(embed=embed)
+	else:
+		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {ctx.author.name}", color=0xff0000)
+		embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+		await ctx.send(embed=embed)
+
+
 
 # ------------------------------------------------------------------------------------ Administrative ------------------------------------------------------------------------------------
 
