@@ -11,7 +11,6 @@ from nacl.encoding import HexEncoder
 import nacl.signing
 from operator import itemgetter
 import json
-from tnb import generate_block
 
 import time
 import secrets
@@ -405,6 +404,11 @@ async def withdraw(ctx, amount):
 					await sync_to_async(user.update)(Coins=user[0].Coins-amount)
 				except Exception as e:
 					print(e)
+				res = requests.get(f'http://13.57.215.62/bank_transactions?limit=1&recipient={records[0].Address}&amount={amount}').json()['results'][0]
+				if r.json()['id'] == res['block']['id']:
+					newTX = Transaction(Type="WITHDRAW", TxID=res["id"], Amount=int(res['amount']))
+					newTX.save()
+
 				embed = discord.Embed(title="Coins Withdrawn!", description=f"{amount} coins have been withdrawn to {records[0].Address} succesfully. \n Use `>status` to check your new balance.", color=0xff0000)
 				embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 				await ctx.send(embed=embed)
