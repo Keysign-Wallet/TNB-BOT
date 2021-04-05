@@ -7,8 +7,11 @@ import requests
 import django
 from asgiref.sync import sync_to_async
 from dotenv import load_dotenv
-import nacl.encoding
+from nacl.encoding import HexEncoder
 import nacl.signing
+from operator import itemgetter
+import json
+from tnb import generate_block
 
 import time
 import secrets
@@ -93,6 +96,22 @@ async def constant():
 					await user.send(embed=embed)
 				except Exception as e:
 					print(e)
+
+#------------------------------------------------------------------------------------------Utils------------------------------------------------------------------------------------------
+
+def generate_block(balance_lock, transactions, signing_key):
+    account_number = signing_key.verify_key.encode(encoder=HexEncoder).decode('utf-8')
+    message = {
+        'balance_key': balance_lock,
+        'txs': sorted(transactions, key=itemgetter('recipient'))
+    }
+    signature = signing_key.sign(json.dumps(message, separators=(',', ':'), sort_keys=True).encode('utf-8')).signature.hex()
+    block = {
+        'account_number': account_number,
+        'message': message,
+        'signature': signature
+    }
+    return json.dumps(block)
 
 # ------------------------------------------------------------------------------------ User functions ------------------------------------------------------------------------------------
 
@@ -354,9 +373,7 @@ async def withdraw(ctx, amount):
 		else:
 			bank_config = requests.get('http://13.57.215.62/config?format=json').json()
 			balance_lock = requests.get(f"{bank_config['primary_validator']['protocol']}://{bank_config['primary_validator']['ip_address']}:{bank_config['primary_validator']['port'] or 0}/accounts/{bot_wallet}/balance_lock?format=json").json()['balance_lock']
-			message = {
-				'balance_lock': balance_lock,
-				'txs': [
+			txs = [
 					{
 						'amount': int(amount),
 						'recipient': records[0].Address
@@ -372,10 +389,16 @@ async def withdraw(ctx, amount):
 						'recipient': bank_config['primary_validator']['account_number'],
 					}
 				]
+			
+			data = generate_block(balance_lock, txs, signing_key)
+			headers = {
+				'Connection': 'keep-alive',
+				'Accept': 'application/json, text/plain, */*',
+				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TNBAccountManager/1.0.0-alpha.43 Chrome/83.0.4103.122 Electron/9.4.0 Safari/537.36',
+				'Content-Type': 'application/json',
+				'Accept-Language': 'en-US'
 			}
-			data = {'account_number': bot_wallet, 'message': message, 'signature': signing_key.sign(str.encode(str(message)), encoder=nacl.encoding.HexEncoder).signature.decode("utf-8")}
-			print(data)
-			r = requests.post('http://13.57.215.62/blocks', data=data)
+			r = requests.request("POST", 'http://13.57.215.62/blocks', headers=headers, data=data)
 			if r:
 				try:
 					user = await sync_to_async(User.objects.filter)(Address=records[0].Address)
