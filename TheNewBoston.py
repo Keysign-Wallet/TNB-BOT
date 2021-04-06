@@ -41,6 +41,17 @@ intents = discord.Intents.default()
 intents.members = True
 client = commands.Bot(command_prefix=bot_prefix, intents=intents)
 
+class MyHelpCommand(commands.MinimalHelpCommand):
+	async def send_pages(self):
+		destination = self.get_destination()
+		e = discord.Embed(color=discord.Color.blurple(), description='')
+		desc = ''
+		for command in [x for x in client.commands if not x.hidden]:
+			desc += f'\n**{command.name}** - {command.brief}'
+		e.description = desc
+		await destination.send(embed=e)
+
+client.help_command = MyHelpCommand()
 
 class Register:
 	def  __init__(self, user_id, address):
@@ -285,7 +296,7 @@ async def rain(ctx, amount, people):
 
 	for channel in ctx.guild.text_channels:
 		async for elem in channel.history().filter(predicate):
-			if elem.author not in users and elem.author != ctx.author and elem.author.id != client.user.id:
+			if elem.author not in users and elem.author != ctx.author and not elem.author.bot:
 				users.append(elem.author)
 
 	author_records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
@@ -399,9 +410,14 @@ async def withdraw(ctx, amount):
 			}
 			r = requests.request("POST", 'http://13.57.215.62/blocks', headers=headers, data=data)
 			if r:
+				if int(requests.get(f"http://54.241.124.162/accounts/{bot_wallet}/balance?format=json").json()['balance']) < amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee']):
+					embed = discord.Embed(title="Error!", description=f"Please try again later.", color=0xff0000)
+					embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+					await ctx.send(embed=embed)
+					return
 				try:
 					user = await sync_to_async(User.objects.filter)(Address=records[0].Address)
-					await sync_to_async(user.update)(Coins=user[0].Coins-amount)
+					await sync_to_async(user.update)(Coins=user[0].Coins-amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee']))
 				except Exception as e:
 					print(e)
 				res = requests.get(f'http://13.57.215.62/bank_transactions?limit=1&recipient={records[0].Address}&amount={amount}').json()['results'][0]
@@ -427,7 +443,7 @@ async def withdraw(ctx, amount):
 # ------------------------------------------------------------------------------------ Administrative ------------------------------------------------------------------------------------
 
 
-@client.command(pass_context=True, brief="secret")
+@client.command(pass_context=True, hidden=True)
 @commands.has_permissions(administrator=True)
 async def kill(ctx):
 	if int(ctx.author.id) == manager_id:
