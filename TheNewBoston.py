@@ -252,6 +252,7 @@ async def stats(ctx):
 	embed = discord.Embed(title="Bot Stats", color=0xff0000)
 	embed.add_field(name='Servers', value=str(len(client.guilds)))
 	embed.add_field(name='Users', value=str(len(await sync_to_async(User.objects.all)())))
+	await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Rain coins on random registered members in the server")
 async def rain(ctx, amount, people):
@@ -354,7 +355,7 @@ async def withdraw(ctx, amount):
 	except:
 		invalid = True
 
-	if amount <= 0:
+	if amount < 1:
 		invalid = True
 
 	if invalid:
