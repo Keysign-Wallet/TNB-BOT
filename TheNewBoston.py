@@ -9,7 +9,7 @@ from asgiref.sync import sync_to_async
 from dotenv import load_dotenv
 from nacl.encoding import HexEncoder
 import nacl.signing
-from operator import itemgetter, ne
+from operator import itemgetter
 import json
 
 import time
