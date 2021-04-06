@@ -418,7 +418,7 @@ async def withdraw(ctx, amount):
 					return
 				try:
 					user = await sync_to_async(User.objects.filter)(Address=records[0].Address)
-					await sync_to_async(user.update)(Coins=user[0].Coins-amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee']))
+					await sync_to_async(user.update)(Coins=user[0].Coins-(amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee'])))
 				except Exception as e:
 					print(e)
 				res = requests.get(f'http://13.57.215.62/bank_transactions?limit=1&recipient={records[0].Address}&amount={amount}').json()['results'][0]
