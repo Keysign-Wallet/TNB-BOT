@@ -354,7 +354,6 @@ async def rain(ctx, amount=None, people=None):
 
 		if any(records):
 			winners.append(potential_winner)
-			break
 
 	await sync_to_async(author_records.update)(Coins=author_records[0].Coins-(amount*people))
 
