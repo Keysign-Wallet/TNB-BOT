@@ -12,6 +12,7 @@ class User(models.Model):
 class Server(models.Model):
 	ServerID = models.IntegerField()
 	ChannelID = models.IntegerField()
+	MoneyChannel = models.IntegerField(default=0)
 
 	def __str__(self):
 		return str(self.ServerID)

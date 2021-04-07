@@ -9,11 +9,12 @@ from asgiref.sync import sync_to_async
 from dotenv import load_dotenv
 from nacl.encoding import HexEncoder
 import nacl.signing
-from operator import itemgetter
 import json
 
 import datetime
 import secrets
+
+from functions import channelcheck, generate_block
 
 load_dotenv()
 sys.path.append(os.getcwd() + '/API')
@@ -71,6 +72,7 @@ class Guild:
 	def __init__(self, server_id, channel_id):
 		self.server_id = server_id
 		self.channel_id = channel_id
+		self.money_channel = channel_id
 
 server_list = [] # servers with modified settings
 address_holder = []
@@ -81,7 +83,11 @@ async def on_ready():
 	servers = await sync_to_async(Server.objects.all)()
 
 	for server in servers:
-		server_list.append(Guild(server.ServerID, server.ChannelID))
+		ServerObject = Guild(server.ServerID, server.ChannelID)
+		if server.MoneyChannel != 0:
+			ServerObject.money_channel = server.MoneyChannel
+
+		server_list.append(ServerObject)
 
 	print ("------------------------------------")
 	print(f"Bot Name: {client.user.name}")
@@ -115,30 +121,14 @@ async def constant():
 				except Exception as e:
 					print(e)
 
-#------------------------------------------------------------------------------------------Utils------------------------------------------------------------------------------------------
-
-def generate_block(balance_lock, transactions, signing_key):
-    account_number = signing_key.verify_key.encode(encoder=HexEncoder).decode('utf-8')
-    message = {
-        'balance_key': balance_lock,
-        'txs': sorted(transactions, key=itemgetter('recipient'))
-    }
-    signature = signing_key.sign(json.dumps(message, separators=(',', ':'), sort_keys=True).encode('utf-8')).signature.hex()
-    block = {
-        'account_number': account_number,
-        'message': message,
-        'signature': signature
-    }
-    return json.dumps(block)
 
 # ------------------------------------------------------------------------------------ User functions ------------------------------------------------------------------------------------
 
 @client.command(pass_context=True, brief="Register address", description='Register your wallet address with the bot for future use.')
 async def register(ctx, address=None):
-	for server in server_list:
-		if server.server_id == ctx.guild.id:
-			if ctx.channel.id != server.channel_id:
-				return
+	if await channelcheck(server_list, ctx):
+		return
+
 
 	if address == None:
 		embed = discord.Embed(title="Register", description=f"To register your address, use the command `{bot_prefix}register [address]`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `{bot_prefix}verify` to confirm your address.", color=bot_color)
@@ -183,10 +173,9 @@ async def register(ctx, address=None):
 
 @client.command(pass_context=True, brief="Verify address", description='Verify your address to complete the registration process.')
 async def verify(ctx):
-	for server in server_list:
-		if server.server_id == ctx.guild.id:
-			if ctx.channel.id != server.channel_id:
-				return
+	if await channelcheck(server_list, ctx):
+		return
+
 	for address in address_holder:
 		if address.user_id == ctx.author.id:
 			r = requests.get(f"http://13.57.215.62/bank_transactions?format=json&limit=1&block__sender={address.address}&recipient={bot_wallet}") # sender and receiver logic needed as well as a user DB
@@ -206,10 +195,8 @@ async def verify(ctx):
 
 @client.command(pass_context=True, brief="View user status", description="View your or another registered user's status.")
 async def status(ctx, member: discord.Member=None):
-	for server in server_list:
-		if server.server_id == ctx.guild.id:
-			if ctx.channel.id != server.channel_id:
-				return
+	if await channelcheck(server_list, ctx):
+		return
 
 	if not member:
 		member = ctx.author
@@ -241,10 +228,8 @@ async def status(ctx, member: discord.Member=None):
 
 @client.command(pass_context=True, brief="Earn coins", description='Learn about the ways to earn TNBC.')
 async def earn(ctx):
-	for server in server_list:
-		if server.server_id == ctx.guild.id:
-			if ctx.channel.id != server.channel_id:
-				return
+	if await channelcheck(server_list, ctx):
+		return
 
 	embed = discord.Embed(title="Earn Coins", description="To earn coins, try completing some tasks: https://thenewboston.com/tasks/All", color=bot_color)
 	await ctx.send(embed=embed)
@@ -252,10 +237,8 @@ async def earn(ctx):
 
 @client.command(pass_context=True, brief="Deposit coins", description='Learn how to deposit coins to your Discord wallet.')
 async def deposit(ctx):
-	for server in server_list:
-		if server.server_id == ctx.guild.id:
-			if ctx.channel.id != server.channel_id:
-				return
+	if await channelcheck(server_list, ctx):
+		return
 
 	embed = discord.Embed(title="Deposit", description=f"To deposit coins, simply make sure you are registered (`{bot_prefix}status`) and then send coins from your wallet to `{bot_wallet}`", color=bot_color)
 	await ctx.send(embed=embed)
@@ -263,10 +246,8 @@ async def deposit(ctx):
 
 @client.command(pass_context=True, brief="Bot stats", description='View various statistics of the bot.')
 async def stats(ctx):
-	for server in server_list:
-		if server.server_id == ctx.guild.id:
-			if ctx.channel.id != server.channel_id:
-				return
+	if await channelcheck(server_list, ctx):
+		return
 
 	embed = discord.Embed(title="Bot Stats", color=bot_color)
 	embed.add_field(name='Servers', value=str(len(client.guilds)))
@@ -274,11 +255,9 @@ async def stats(ctx):
 	await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Rain coins", description='Rain coins on the active and registered users of this server.')
-async def rain(ctx, amount=None, people=None):
-	for server in server_list:
-		if server.server_id == ctx.guild.id:
-			if ctx.channel.id != server.channel_id:
-				return
+async def rain(ctx, amount=None, people=None, timeout=10):
+	if await channelcheck(server_list, ctx, True):
+		return
 
 	if amount == None or people == None:
 		embed = discord.Embed(title="Missing Arguments", description=f"To rain, you need to do `{bot_prefix}rain [amount per person] [amount of people]`. ", color=bot_color)
@@ -290,6 +269,7 @@ async def rain(ctx, amount=None, people=None):
 	try:
 		amount = int(amount)
 		people = int(people)
+		timeout = int(timeout)*60
 	except:
 		invalid = True
 
@@ -309,7 +289,7 @@ async def rain(ctx, amount=None, people=None):
 
 		now = datetime.datetime.utcnow()
 		delta = now - message.created_at
-		return delta.total_seconds() <= 600
+		return delta.total_seconds() <= timeout
 
 
 	for channel in ctx.guild.text_channels:
@@ -375,10 +355,8 @@ async def rain(ctx, amount=None, people=None):
 
 @client.command(pass_context=True, brief="Withdraw coins", description="Send coins from your Discord wallet to your registered wallet.")
 async def withdraw(ctx, amount=None):
-	for server in server_list:
-		if server.server_id == ctx.guild.id:
-			if ctx.channel.id != server.channel_id:
-				return
+	if await channelcheck(server_list, ctx, True):
+		return
 
 	if amount == None:
 		embed = discord.Embed(title="Missing Arguments", description=f"To withdraw, you need to do `{bot_prefix}withdraw [amount of coins excluding fee]`. ", color=bot_color)
@@ -431,7 +409,7 @@ async def withdraw(ctx, amount=None):
 					}
 				]
 			
-			data = generate_block(balance_lock, txs, signing_key)
+			data = await generate_block(balance_lock, txs, signing_key)
 			headers = {
 				'Connection': 'keep-alive',
 				'Accept': 'application/json, text/plain, */*',
@@ -519,12 +497,33 @@ async def channel(ctx, channel: discord.TextChannel=None):
 	if not channel:
 		channel=ctx.channel
 		
-	query = Server(ServerID=int(ctx.guild.id), ChannelID=int(channel.id))
+	query = Server(ServerID=int(ctx.guild.id), ChannelID=int(channel.id), MoneyChannel=0)
 	query.save()
 	server_list.append(Guild(int(ctx.guild.id), int(channel.id)))
 	embed = discord.Embed(title="Settings changed", description=f"Commands channel set to: {channel.mention}", color=bot_color)
 	await ctx.send(embed=embed)
 
+@client.command(pass_context=True, brief="Set coin-related commands channel")
+@commands.has_permissions(administrator=True)
+async def moneychannel(ctx, channel: discord.TextChannel=None):
+	if not channel:
+		channel=ctx.channel
+		
+	exists = False
+	for pending in server_list:
+		if pending.server_id == ctx.guild.id:
+			pending.money_channel = channel.id
+			exists = True
+
+	if exists:
+		query = await sync_to_async(Server.objects.filter)(ServerID=ctx.guild.id)
+		await sync_to_async(query.update)(MoneyChannel=channel.id)
+
+		embed = discord.Embed(title="Settings changed", description=f"Coin-related commands channel set to: {channel.mention}", color=bot_color)
+		await ctx.send(embed=embed)
+	else:
+		embed = discord.Embed(title="No Commands Channel", description=f"You can only set a moneychannel if you have a normal commands channel set using `{bot_prefix}channel`", color=bot_color)
+		await ctx.send(embed=embed)
 
 client.loop.create_task(constant())
 client.run(token)
