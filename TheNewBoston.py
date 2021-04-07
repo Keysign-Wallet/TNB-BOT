@@ -34,7 +34,7 @@ manager_id = int(os.environ.get('MANAGER_ID'))
 signing_key = nacl.signing.SigningKey(str.encode(os.environ.get('BOT_SIGNING_KEY')), encoder=nacl.encoding.HexEncoder)
 bot_wallet = signing_key.verify_key.encode(encoder=nacl.encoding.HexEncoder).decode('utf-8')
 
-bot_color = "0xff0000"
+bot_color = 0xff0000
 
 if None in [bot_prefix, signing_key, token, manager_id]:
     raise Exception("Please configure environment variables properly!")
