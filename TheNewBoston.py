@@ -12,7 +12,7 @@ import nacl.signing
 from operator import itemgetter
 import json
 
-import time
+import datetime
 import secrets
 
 load_dotenv()
@@ -306,7 +306,11 @@ async def rain(ctx, amount=None, people=None):
 	users = []
 
 	def predicate(message):
-		return time.time() - 600 >= message.created_at.timestamp()
+
+		now = datetime.datetime.utcnow()
+		delta = now - message.created_at
+		return delta.total_seconds() <= 600
+
 
 	for channel in ctx.guild.text_channels:
 		async for elem in channel.history().filter(predicate):
