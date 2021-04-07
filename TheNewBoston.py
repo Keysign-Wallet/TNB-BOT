@@ -342,16 +342,19 @@ async def rain(ctx, amount=None, people=None):
 		await ctx.send(embed=embed)
 		return
 
+
+
 	for decision in range(people):
-		while True:
-			potential_winner = secrets.choice(eligible)
 
-			if potential_winner not in winners:
-				records = await sync_to_async(User.objects.filter)(DiscordID=potential_winner.id)
+		potential_winner = secrets.choice(eligible)
+		eligible.remove(potential_winner)
+				
 
-				if any(records):
-					winners.append(potential_winner)
-					break
+		records = await sync_to_async(User.objects.filter)(DiscordID=potential_winner.id)
+
+		if any(records):
+			winners.append(potential_winner)
+			break
 
 	await sync_to_async(author_records.update)(Coins=author_records[0].Coins-(amount*people))
 
