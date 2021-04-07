@@ -366,7 +366,7 @@ async def rain(ctx, amount=None, people=None):
 	embed.add_field(name='Amount', value=amount)
 	await ctx.send(embed=embed)
 
-@client.command(pass_context=True, brief="Send coins from your Discord wallet to your registered wallet")
+@client.command(pass_context=True, brief="Withdraw coins", description="Send coins from your Discord wallet to your registered wallet")
 async def withdraw(ctx, amount=None):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
