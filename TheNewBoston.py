@@ -361,7 +361,6 @@ async def withdraw(ctx, amount):
 			if ctx.channel.id != server.channel_id:
 				return
 	invalid = False
-	maximum = False
 	records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
 	bank_config = requests.get('http://13.57.215.62/config?format=json').json()
 	try:
