@@ -53,6 +53,11 @@ class MyHelpCommand(commands.MinimalHelpCommand):
 		e.description = desc
 		await destination.send(embed=e)
 
+	async def send_command_help(self, command):
+		destination = self.get_destination()
+		e = discord.Embed(color=bot_color, description='')
+		e.description = f'**{command.name}** - {command.brief}'
+		await destination.send(embed=e)
 client.help_command = MyHelpCommand()
 
 class Register:
