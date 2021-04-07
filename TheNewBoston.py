@@ -355,7 +355,7 @@ async def rain(ctx, amount=None, people=None, timeout=10):
 
 @client.command(pass_context=True, brief="Withdraw coins", description="Send coins from your Discord wallet to your registered wallet.")
 async def withdraw(ctx, amount=None):
-	if await channelcheck(server_list, ctx, True):
+	if await channelcheck(server_list, ctx):
 		return
 
 	if amount == None:
