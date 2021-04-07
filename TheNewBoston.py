@@ -361,10 +361,16 @@ async def withdraw(ctx, amount):
 			if ctx.channel.id != server.channel_id:
 				return
 	invalid = False
+	maximum = False
+	records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
+	bank_config = requests.get('http://13.57.215.62/config?format=json').json()
 	try:
 		amount = int(amount)
 	except:
-		invalid = True
+		if amount == 'all':
+			amount = records[0].Coins - (int(bank_config['default_transaction_fee'])+int(bank_config['primary_validator']['default_transaction_fee']))
+		else:
+			invalid = True
 
 	if amount < 1:
 		invalid = True
@@ -374,11 +380,10 @@ async def withdraw(ctx, amount):
 		await ctx.send(embed=embed)
 		return
 
-	records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
 
 	if any(records):
-		if records[0].Coins < amount:
-			embed = discord.Embed(title="Inadequate Funds", description=f"You do not have enough coins in your discord wallet. \n Use `>deposit` to add more coins", color=0xff0000)
+		if records[0].Coins < amount + int(bank_config['default_transaction_fee'])+int(bank_config['primary_validator']['default_transaction_fee']):
+			embed = discord.Embed(title="Inadequate Funds", description=f"You do not have enough coins in your discord wallet. \n Use `>deposit` to add more coins. \n _Transaction fees may apply_", color=0xff0000)
 			embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 			await ctx.send(embed=embed)
 		else:
