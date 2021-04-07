@@ -34,6 +34,8 @@ manager_id = int(os.environ.get('MANAGER_ID'))
 signing_key = nacl.signing.SigningKey(str.encode(os.environ.get('BOT_SIGNING_KEY')), encoder=nacl.encoding.HexEncoder)
 bot_wallet = signing_key.verify_key.encode(encoder=nacl.encoding.HexEncoder).decode('utf-8')
 
+bot_color = "0xff0000"
+
 if None in [bot_prefix, signing_key, token, manager_id]:
     raise Exception("Please configure environment variables properly!")
 
@@ -44,7 +46,7 @@ client = commands.Bot(command_prefix=bot_prefix, intents=intents)
 class MyHelpCommand(commands.MinimalHelpCommand):
 	async def send_pages(self):
 		destination = self.get_destination()
-		e = discord.Embed(color=discord.Color.blurple(), description='')
+		e = discord.Embed(color=bot_color, description='')
 		desc = ''
 		for command in [x for x in client.commands if not x.hidden]:
 			desc += f'\n**{command.name}** - {command.brief}'
@@ -102,7 +104,7 @@ async def constant():
 
 				try:
 					user = await client.fetch_user(user[0].DiscordID)
-					embed = discord.Embed(title="Success", description=f"Succesfully deposited {tx['amount']} coin(s) into your account", color=0xff0000)
+					embed = discord.Embed(title="Success", description=f"Succesfully deposited {tx['amount']} coin(s) into your account", color=bot_color)
 					await user.send(embed=embed)
 				except Exception as e:
 					print(e)
@@ -133,10 +135,10 @@ async def register(ctx, address=None):
 				return
 
 	if address == None:
-		embed = discord.Embed(title="Register", description=f"To register your address, use the command `{bot_prefix}register [address]`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `{bot_prefix}verify` to confirm your address.", color=0xff0000)
+		embed = discord.Embed(title="Register", description=f"To register your address, use the command `{bot_prefix}register [address]`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `{bot_prefix}verify` to confirm your address.", color=bot_color)
 		await ctx.send(embed=embed)
 	elif len(address) < 64:
-		embed = discord.Embed(title="Invalid Address", description=f"Please enter a valid address!", color=0xff0000)
+		embed = discord.Embed(title="Invalid Address", description=f"Please enter a valid address!", color=bot_color)
 		await ctx.send(embed=embed)
 	else:
 		users = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
@@ -150,26 +152,26 @@ async def register(ctx, address=None):
 				potential = pending
 
 		if any(users):
-			embed = discord.Embed(title="Already Registered", description=f"You already have a registered address: `{users[0].Address}`", color=0xff0000)
+			embed = discord.Embed(title="Already Registered", description=f"You already have a registered address: `{users[0].Address}`", color=bot_color)
 			await ctx.send(embed=embed)
 			return
 		elif other:
 			if potential.user_id == ctx.author.id:
 				address_holder.remove([x for x in address_holder if x.address == potential.address][0])
 				address_holder.append(Register(ctx.author.id, address))
-				embed = discord.Embed(title="Send a Coin!", description=f"Succesfully re-registered with new address. You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `{bot_prefix}verify` to confirm the address.", color=0xff0000)
+				embed = discord.Embed(title="Send a Coin!", description=f"Succesfully re-registered with new address. You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `{bot_prefix}verify` to confirm the address.", color=bot_color)
 				await ctx.send(embed=embed)
 				return
-			embed = discord.Embed(title="In Use", description=f"Someone else is already registering this address", color=0xff0000)
+			embed = discord.Embed(title="In Use", description=f"Someone else is already registering this address", color=bot_color)
 			await ctx.send(embed=embed)
 			return
 		elif any(owned):
-			embed = discord.Embed(title="Already Owned", description=f"Someone else is already owns this address.", color=0xff0000)
+			embed = discord.Embed(title="Already Owned", description=f"Someone else is already owns this address.", color=bot_color)
 			await ctx.send(embed=embed)
 			return
 		else:
 			address_holder.append(Register(ctx.author.id, address))
-			embed = discord.Embed(title="Send a Coin!", description=f"You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `{bot_prefix}verify` to confirm the address.", color=0xff0000)
+			embed = discord.Embed(title="Send a Coin!", description=f"You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `{bot_prefix}verify` to confirm the address.", color=bot_color)
 			await ctx.send(embed=embed)
 
 
@@ -193,7 +195,7 @@ async def verify(ctx):
 			else:
 				await ctx.send(f"No transaction detected from `{address.address}`")
 			return
-	embed = discord.Embed(title="No Address", description=f"No address to verify. Did you make sure to use `{bot_prefix}register [address]`?", color=0xff0000)
+	embed = discord.Embed(title="No Address", description=f"No address to verify. Did you make sure to use `{bot_prefix}register [address]`?", color=bot_color)
 	await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Check the verification status of a user")
@@ -219,14 +221,14 @@ async def status(ctx, member: discord.Member=None):
 		if any(info):
 			amount = info["balance"]
 
-		embed = discord.Embed(color=0xff0000)
+		embed = discord.Embed(color=bot_color)
 		embed.set_author(name=member.name, icon_url=member.avatar_url)
 		embed.add_field(name='Address', value=user_address, inline=False)
 		embed.add_field(name='Balance', value=amount)
 		embed.add_field(name='Discord Account Balance', value=user_coins)
 		await ctx.send(embed=embed)
 	else:
-		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {member.name}", color=0xff0000)
+		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {member.name}", color=bot_color)
 		embed.set_author(name=member.name, icon_url=member.avatar_url)
 		await ctx.send(embed=embed)
 
@@ -238,7 +240,7 @@ async def earn(ctx):
 			if ctx.channel.id != server.channel_id:
 				return
 
-	embed = discord.Embed(title="Earn Coins", description="To earn coins, try completing some tasks: https://thenewboston.com/tasks/All", color=0xff0000)
+	embed = discord.Embed(title="Earn Coins", description="To earn coins, try completing some tasks: https://thenewboston.com/tasks/All", color=bot_color)
 	await ctx.send(embed=embed)
 
 
@@ -249,7 +251,7 @@ async def deposit(ctx):
 			if ctx.channel.id != server.channel_id:
 				return
 
-	embed = discord.Embed(title="Deposit", description=f"To deposit coins, simply make sure you are registered (`{bot_prefix}status`) and then send coins from your wallet to `{bot_wallet}`", color=0xff0000)
+	embed = discord.Embed(title="Deposit", description=f"To deposit coins, simply make sure you are registered (`{bot_prefix}status`) and then send coins from your wallet to `{bot_wallet}`", color=bot_color)
 	await ctx.send(embed=embed)
 
 
@@ -260,7 +262,7 @@ async def stats(ctx):
 			if ctx.channel.id != server.channel_id:
 				return
 
-	embed = discord.Embed(title="Bot Stats", color=0xff0000)
+	embed = discord.Embed(title="Bot Stats", color=bot_color)
 	embed.add_field(name='Servers', value=str(len(client.guilds)))
 	embed.add_field(name='Users', value=str(len(await sync_to_async(User.objects.all)())))
 	await ctx.send(embed=embed)
@@ -273,7 +275,7 @@ async def rain(ctx, amount=None, people=None):
 				return
 
 	if amount == None or people == None:
-		embed = discord.Embed(title="Missing Arguments", description=f"To rain, you need to do `{bot_prefix}rain [amount per person] [amount of people]`. ", color=0xff0000)
+		embed = discord.Embed(title="Missing Arguments", description=f"To rain, you need to do `{bot_prefix}rain [amount per person] [amount of people]`. ", color=bot_color)
 		await ctx.send(embed=embed)
 		return
 
@@ -289,7 +291,7 @@ async def rain(ctx, amount=None, people=None):
 		invalid = True
 
 	if invalid:
-		embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=0xff0000)
+		embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=bot_color)
 		await ctx.send(embed=embed)
 		return
 
@@ -313,11 +315,11 @@ async def rain(ctx, amount=None, people=None):
 		if user_coins >= amount*people:
 			pass
 		else:
-			embed = discord.Embed(title="Not enough coins.", description=f"You only have {user_coins} out of {amount*people} coins in your wallet. You need to deposit coins to {bot_wallet} to rain.", color=0xff0000)
+			embed = discord.Embed(title="Not enough coins.", description=f"You only have {user_coins} out of {amount*people} coins in your wallet. You need to deposit coins to {bot_wallet} to rain.", color=bot_color)
 			await ctx.send(embed=embed)
 			return			
 	else:
-		embed = discord.Embed(title="Not registered.", description=f"You need to be registered to do a rain", color=0xff0000)
+		embed = discord.Embed(title="Not registered.", description=f"You need to be registered to do a rain", color=bot_color)
 		await ctx.send(embed=embed)
 		return		
 
@@ -330,7 +332,7 @@ async def rain(ctx, amount=None, people=None):
 			eligible.append(user)
 
 	if len(eligible) < people:
-		embed = discord.Embed(title="Not enough eligible.", description=f"This server only has {len(eligible)} eligible (registered and active) users out of your specified {people}", color=0xff0000)
+		embed = discord.Embed(title="Not enough eligible.", description=f"This server only has {len(eligible)} eligible (registered and active) users out of your specified {people}", color=bot_color)
 		await ctx.send(embed=embed)
 		return
 
@@ -354,7 +356,7 @@ async def rain(ctx, amount=None, people=None):
 		user = await sync_to_async(User.objects.filter)(DiscordID=winner.id)
 		await sync_to_async(user.update)(Coins=user[0].Coins+amount)
 
-	embed = discord.Embed(title=f"Rain by {ctx.author.name}!", color=0xff0000)
+	embed = discord.Embed(title=f"Rain by {ctx.author.name}!", color=bot_color)
 	embed.add_field(name='Winners', value=winlist)
 	embed.add_field(name='Amount', value=amount)
 	await ctx.send(embed=embed)
@@ -367,7 +369,7 @@ async def withdraw(ctx, amount=None):
 				return
 
 	if amount == None:
-		embed = discord.Embed(title="Missing Arguments", description=f"To withdraw, you need to do `{bot_prefix}withdraw [amount of coins excluding fee]`. ", color=0xff0000)
+		embed = discord.Embed(title="Missing Arguments", description=f"To withdraw, you need to do `{bot_prefix}withdraw [amount of coins excluding fee]`. ", color=bot_color)
 		await ctx.send(embed=embed)
 		return
 
@@ -387,14 +389,14 @@ async def withdraw(ctx, amount=None):
 		invalid = True
 
 	if invalid:
-		embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=0xff0000)
+		embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=bot_color)
 		await ctx.send(embed=embed)
 		return
 
 
 	if any(records):
 		if records[0].Coins < amount + int(bank_config['default_transaction_fee'])+int(bank_config['primary_validator']['default_transaction_fee']):
-			embed = discord.Embed(title="Inadequate Funds", description=f"You do not have enough coins in your discord wallet. \n Use `{bot_prefix}deposit` to add more coins. \n _Transaction fees may apply_", color=0xff0000)
+			embed = discord.Embed(title="Inadequate Funds", description=f"You do not have enough coins in your discord wallet. \n Use `{bot_prefix}deposit` to add more coins. \n _Transaction fees may apply_", color=bot_color)
 			embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 			await ctx.send(embed=embed)
 		else:
@@ -428,7 +430,7 @@ async def withdraw(ctx, amount=None):
 			r = requests.request("POST", 'http://13.57.215.62/blocks', headers=headers, data=data)
 			if r:
 				if int(requests.get(f"http://54.241.124.162/accounts/{bot_wallet}/balance?format=json").json()['balance']) < amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee']):
-					embed = discord.Embed(title="Error!", description=f"Please try again later.", color=0xff0000)
+					embed = discord.Embed(title="Error!", description=f"Please try again later.", color=bot_color)
 					embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 					await ctx.send(embed=embed)
 					return
@@ -442,16 +444,16 @@ async def withdraw(ctx, amount=None):
 					newTX = Transaction(Type="WITHDRAW", TxID=res["id"], Amount=int(res['amount']))
 					newTX.save()
 
-				embed = discord.Embed(title="Coins Withdrawn!", description=f"{amount} coins have been withdrawn to {records[0].Address} succesfully. \n Use `{bot_prefix}status` to check your new balance.", color=0xff0000)
+				embed = discord.Embed(title="Coins Withdrawn!", description=f"{amount} coins have been withdrawn to {records[0].Address} succesfully. \n Use `{bot_prefix}status` to check your new balance.", color=bot_color)
 				embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 				await ctx.send(embed=embed)
 			else:
 				print(r.json())
-				embed = discord.Embed(title="Error!", description=f"Please try again later.", color=0xff0000)
+				embed = discord.Embed(title="Error!", description=f"Please try again later.", color=bot_color)
 				embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 				await ctx.send(embed=embed)
 	else:
-		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {ctx.author.name}", color=0xff0000)
+		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {ctx.author.name}", color=bot_color)
 		embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 		await ctx.send(embed=embed)
 
@@ -476,7 +478,7 @@ async def kill(ctx):
 @client.command(pass_context=True, brief="kick member")
 @commands.has_permissions(kick_members=True)
 async def kick(ctx, member: discord.Member, *, reason=None):
-	embed = discord.Embed(title="Member kicked.", description=f"Member kicked: {member.mention}\nReason: {reason}", color=0xff0000)
+	embed = discord.Embed(title="Member kicked.", description=f"Member kicked: {member.mention}\nReason: {reason}", color=bot_color)
 	await ctx.message.delete()
 	await ctx.send(embed=embed)
 	await member.kick(reason=reason)
@@ -484,7 +486,7 @@ async def kick(ctx, member: discord.Member, *, reason=None):
 @client.command(pass_context=True, brief="ban member")
 @commands.has_permissions(ban_members=True)
 async def ban(ctx, member: discord.Member, *, reason=None):
-	embed = discord.Embed(title="Member banned.", description=f"Member banned: {member.mention}\nReason: {reason}", color=0xff0000)
+	embed = discord.Embed(title="Member banned.", description=f"Member banned: {member.mention}\nReason: {reason}", color=bot_color)
 	await ctx.message.delete()
 	await ctx.send(embed=embed)
 	await member.ban(reason=reason)
@@ -508,7 +510,7 @@ async def channel(ctx, channel: discord.TextChannel=None):
 	query = Server(ServerID=int(ctx.guild.id), ChannelID=int(channel.id))
 	query.save()
 	server_list.append(Guild(int(ctx.guild.id), int(channel.id)))
-	embed = discord.Embed(title="Settings changed", description=f"Commands channel set to: {channel.mention}", color=0xff0000)
+	embed = discord.Embed(title="Settings changed", description=f"Commands channel set to: {channel.mention}", color=bot_color)
 	await ctx.send(embed=embed)
 
 
