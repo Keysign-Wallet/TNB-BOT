@@ -49,14 +49,15 @@ class MyHelpCommand(commands.MinimalHelpCommand):
 		e = discord.Embed(color=bot_color, description='')
 		desc = ''
 		for command in [x for x in client.commands if not x.hidden]:
-			desc += f'\n**{command.name}** - {command.brief}'
+			if not command.brief == None:
+				desc += f'\n**{command.name}** - {command.brief}'
 		e.description = desc
 		await destination.send(embed=e)
 
 	async def send_command_help(self, command):
 		destination = self.get_destination()
 		e = discord.Embed(color=bot_color, description='')
-		e.description = f'**{command.name}** - {command.brief}'
+		e.description = f'**{command.name}** - {command.description}'
 		await destination.send(embed=e)
 client.help_command = MyHelpCommand()
 
@@ -132,7 +133,7 @@ def generate_block(balance_lock, transactions, signing_key):
 
 # ------------------------------------------------------------------------------------ User functions ------------------------------------------------------------------------------------
 
-@client.command(pass_context=True, brief="Register address")
+@client.command(pass_context=True, brief="Register address", description='Register your wallet address with the bot for future use.')
 async def register(ctx, address=None):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
@@ -180,7 +181,7 @@ async def register(ctx, address=None):
 			await ctx.send(embed=embed)
 
 
-@client.command(pass_context=True, brief="Verify address registration transaction")
+@client.command(pass_context=True, brief="Verify address", description='Verify your address to complete the registration process.')
 async def verify(ctx):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
@@ -203,7 +204,7 @@ async def verify(ctx):
 	embed = discord.Embed(title="No Address", description=f"No address to verify. Did you make sure to use `{bot_prefix}register [address]`?", color=bot_color)
 	await ctx.send(embed=embed)
 
-@client.command(pass_context=True, brief="Check the verification status of a user")
+@client.command(pass_context=True, brief="View user status", description="View your or another registered user's status.")
 async def status(ctx, member: discord.Member=None):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
@@ -238,7 +239,7 @@ async def status(ctx, member: discord.Member=None):
 		await ctx.send(embed=embed)
 
 
-@client.command(pass_context=True, brief="Ways to earn coins")
+@client.command(pass_context=True, brief="Earn coins", description='Learn about the ways to earn TNBC.')
 async def earn(ctx):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
@@ -249,7 +250,7 @@ async def earn(ctx):
 	await ctx.send(embed=embed)
 
 
-@client.command(pass_context=True, brief="How to deposit coins to the bot")
+@client.command(pass_context=True, brief="Deposit coins", description='Learn how to deposit coins to your Discord wallet.')
 async def deposit(ctx):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
@@ -260,7 +261,7 @@ async def deposit(ctx):
 	await ctx.send(embed=embed)
 
 
-@client.command(pass_context=True, brief="See statistics of the bot")
+@client.command(pass_context=True, brief="Bot stats", description='View various statistics of the bot.')
 async def stats(ctx):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
@@ -272,7 +273,7 @@ async def stats(ctx):
 	embed.add_field(name='Users', value=str(len(await sync_to_async(User.objects.all)())))
 	await ctx.send(embed=embed)
 
-@client.command(pass_context=True, brief="Rain coins on random registered members in the server")
+@client.command(pass_context=True, brief="Rain coins", description='Rain coins on the active and registered users of this server.')
 async def rain(ctx, amount=None, people=None):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
@@ -366,7 +367,7 @@ async def rain(ctx, amount=None, people=None):
 	embed.add_field(name='Amount', value=amount)
 	await ctx.send(embed=embed)
 
-@client.command(pass_context=True, brief="Withdraw coins", description="Send coins from your Discord wallet to your registered wallet")
+@client.command(pass_context=True, brief="Withdraw coins", description="Send coins from your Discord wallet to your registered wallet.")
 async def withdraw(ctx, amount=None):
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
