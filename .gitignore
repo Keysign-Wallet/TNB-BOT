@@ -2,3 +2,4 @@
 API/db.sqlite3
 .env
 __pycache__
+API/main/migrations/
