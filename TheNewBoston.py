@@ -129,46 +129,47 @@ async def register(ctx, address=None):
 	if await channelcheck(server_list, ctx):
 		return
 
+	async with ctx.channel.typing():
 
-	if address == None:
-		embed = discord.Embed(title="Register", description=f"To register your address, use the command `{bot_prefix}register [address]`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `{bot_prefix}verify` to confirm your address.", color=bot_color)
-		await ctx.send(embed=embed)
-	elif len(address) < 64:
-		embed = discord.Embed(title="Invalid Address", description=f"Please enter a valid address!", color=bot_color)
-		await ctx.send(embed=embed)
-	else:
-		users = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
-		owned = await sync_to_async(User.objects.filter)(Address=address)
-		other = False
-		potential = None
-
-		for pending in address_holder:
-			if pending.user_id == ctx.author.id or pending.address == address:
-				other = True
-				potential = pending
-
-		if any(users):
-			embed = discord.Embed(title="Already Registered", description=f"You already have a registered address: `{users[0].Address}`", color=bot_color)
+		if address == None:
+			embed = discord.Embed(title="Register", description=f"To register your address, use the command `{bot_prefix}register [address]`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `{bot_prefix}verify` to confirm your address.", color=bot_color)
 			await ctx.send(embed=embed)
-			return
-		elif other:
-			if potential.user_id == ctx.author.id:
-				address_holder.remove([x for x in address_holder if x.address == potential.address][0])
-				address_holder.append(Register(ctx.author.id, address))
-				embed = discord.Embed(title="Send a Coin!", description=f"Succesfully re-registered with new address. You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `{bot_prefix}verify` to confirm the address.", color=bot_color)
+		elif len(address) < 64:
+			embed = discord.Embed(title="Invalid Address", description=f"Please enter a valid address!", color=bot_color)
+			await ctx.send(embed=embed)
+		else:
+			users = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
+			owned = await sync_to_async(User.objects.filter)(Address=address)
+			other = False
+			potential = None
+
+			for pending in address_holder:
+				if pending.user_id == ctx.author.id or pending.address == address:
+					other = True
+					potential = pending
+
+			if any(users):
+				embed = discord.Embed(title="Already Registered", description=f"You already have a registered address: `{users[0].Address}`", color=bot_color)
 				await ctx.send(embed=embed)
 				return
-			embed = discord.Embed(title="In Use", description=f"Someone else is already registering this address", color=bot_color)
-			await ctx.send(embed=embed)
-			return
-		elif any(owned):
-			embed = discord.Embed(title="Already Owned", description=f"Someone else is already owns this address.", color=bot_color)
-			await ctx.send(embed=embed)
-			return
-		else:
-			address_holder.append(Register(ctx.author.id, address))
-			embed = discord.Embed(title="Send a Coin!", description=f"You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `{bot_prefix}verify` to confirm the address.", color=bot_color)
-			await ctx.send(embed=embed)
+			elif other:
+				if potential.user_id == ctx.author.id:
+					address_holder.remove([x for x in address_holder if x.address == potential.address][0])
+					address_holder.append(Register(ctx.author.id, address))
+					embed = discord.Embed(title="Send a Coin!", description=f"Succesfully re-registered with new address. You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `{bot_prefix}verify` to confirm the address.", color=bot_color)
+					await ctx.send(embed=embed)
+					return
+				embed = discord.Embed(title="In Use", description=f"Someone else is already registering this address", color=bot_color)
+				await ctx.send(embed=embed)
+				return
+			elif any(owned):
+				embed = discord.Embed(title="Already Owned", description=f"Someone else is already owns this address.", color=bot_color)
+				await ctx.send(embed=embed)
+				return
+			else:
+				address_holder.append(Register(ctx.author.id, address))
+				embed = discord.Embed(title="Send a Coin!", description=f"You now have to send 1 coin or more to `{bot_wallet}` from `{address}` and then use the command `{bot_prefix}verify` to confirm the address.", color=bot_color)
+				await ctx.send(embed=embed)
 
 
 @client.command(pass_context=True, brief="Verify address", description='Verify your address to complete the registration process.')
@@ -176,22 +177,25 @@ async def verify(ctx):
 	if await channelcheck(server_list, ctx):
 		return
 
-	for address in address_holder:
-		if address.user_id == ctx.author.id:
-			r = requests.get(f"http://13.57.215.62/bank_transactions?format=json&limit=1&block__sender={address.address}&recipient={bot_wallet}") # sender and receiver logic needed as well as a user DB
-			info = r.json()
-			if any(info["results"]):
-				query = User(DiscordID=int(ctx.author.id), Address=address.address)
-				query.save()
-				newTX = Transaction(Type="DEPOSIT", TxID=info["results"][0]["id"], Amount=int(info["results"][0]['amount']))
-				newTX.save()
-				await ctx.send(f"Address `{address.address}` succesfully associated with {ctx.author.mention}")
-				address_holder.remove(address)
-			else:
-				await ctx.send(f"No transaction detected from `{address.address}`")
-			return
-	embed = discord.Embed(title="No Address", description=f"No address to verify. Did you make sure to use `{bot_prefix}register [address]`?", color=bot_color)
-	await ctx.send(embed=embed)
+
+	async with ctx.channel.typing():
+
+		for address in address_holder:
+			if address.user_id == ctx.author.id:
+				r = requests.get(f"http://13.57.215.62/bank_transactions?format=json&limit=1&block__sender={address.address}&recipient={bot_wallet}") # sender and receiver logic needed as well as a user DB
+				info = r.json()
+				if any(info["results"]):
+					query = User(DiscordID=int(ctx.author.id), Address=address.address)
+					query.save()
+					newTX = Transaction(Type="DEPOSIT", TxID=info["results"][0]["id"], Amount=int(info["results"][0]['amount']))
+					newTX.save()
+					await ctx.send(f"Address `{address.address}` succesfully associated with {ctx.author.mention}")
+					address_holder.remove(address)
+				else:
+					await ctx.send(f"No transaction detected from `{address.address}`")
+				return
+		embed = discord.Embed(title="No Address", description=f"No address to verify. Did you make sure to use `{bot_prefix}register [address]`?", color=bot_color)
+		await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="View user status", description="View your or another registered user's status.")
 async def status(ctx, member: discord.Member=None):
@@ -201,29 +205,31 @@ async def status(ctx, member: discord.Member=None):
 	if not member:
 		member = ctx.author
 
-	records = await sync_to_async(User.objects.filter)(DiscordID=member.id)
 
-	if any(records):
-		user_address = records[0].Address
-		user_coins = records[0].Coins
+	async with ctx.channel.typing():
+		records = await sync_to_async(User.objects.filter)(DiscordID=member.id)
 
-		r = requests.get(f"http://54.241.124.162/accounts/{user_address}/balance?format=json")
-		info = r.json()
+		if any(records):
+			user_address = records[0].Address
+			user_coins = records[0].Coins
 
-		amount = 0
-		if any(info):
-			amount = info["balance"]
+			r = requests.get(f"http://54.241.124.162/accounts/{user_address}/balance?format=json")
+			info = r.json()
 
-		embed = discord.Embed(color=bot_color)
-		embed.set_author(name=member.name, icon_url=member.avatar_url)
-		embed.add_field(name='Address', value=user_address, inline=False)
-		embed.add_field(name='Balance', value=amount)
-		embed.add_field(name='Discord Account Balance', value=user_coins)
-		await ctx.send(embed=embed)
-	else:
-		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {member.name}", color=bot_color)
-		embed.set_author(name=member.name, icon_url=member.avatar_url)
-		await ctx.send(embed=embed)
+			amount = 0
+			if any(info):
+				amount = info["balance"]
+
+			embed = discord.Embed(color=bot_color)
+			embed.set_author(name=member.name, icon_url=member.avatar_url)
+			embed.add_field(name='Address', value=user_address, inline=False)
+			embed.add_field(name='Balance', value=amount)
+			embed.add_field(name='Discord Account Balance', value=user_coins)
+			await ctx.send(embed=embed)
+		else:
+			embed = discord.Embed(title="Unregistered", description=f"No address could be found for {member.name}", color=bot_color)
+			embed.set_author(name=member.name, icon_url=member.avatar_url)
+			await ctx.send(embed=embed)
 
 
 @client.command(pass_context=True, brief="Earn coins", description='Learn about the ways to earn TNBC.')
@@ -249,203 +255,229 @@ async def stats(ctx):
 	if await channelcheck(server_list, ctx):
 		return
 
-	embed = discord.Embed(title="Bot Stats", color=bot_color)
-	embed.add_field(name='Servers', value=str(len(client.guilds)))
-	embed.add_field(name='Users', value=str(len(await sync_to_async(User.objects.all)())))
-	await ctx.send(embed=embed)
+	async with ctx.channel.typing():
+		embed = discord.Embed(title="Bot Stats", color=bot_color)
+		embed.add_field(name='Servers', value=str(len(client.guilds)))
+		embed.add_field(name='Users', value=str(len(await sync_to_async(User.objects.all)())))
+		await ctx.send(embed=embed)
+
+@client.command(pass_context=True, brief="Show registered users", description='Shows the list of users on the server who are registered on the bot')
+async def users(ctx):
+	if await channelcheck(server_list, ctx):
+		return
+
+	async with ctx.channel.typing():
+
+		users = await sync_to_async(User.objects.filter)(DiscordID__in=[member.id for member in ctx.guild.members])
+
+		userlist = ""
+		addresslist = ""
+		valuelist = ""
+
+		for user in users:
+			userlist += f"{ctx.guild.get_member(user.DiscordID).mention}\n"
+			addresslist += f"{user.Address[:6]}...\n"
+			valuelist += f"{user.Coins}\n"
+
+		embed = discord.Embed(title="Registered Users", color=bot_color)
+		embed.add_field(name='User', value=userlist)
+		embed.add_field(name='Address', value=addresslist)
+		embed.add_field(name='Account Value', value=valuelist)
+		await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Rain coins", description='Rain coins on the active and registered users of this server.')
 async def rain(ctx, amount=None, people=None, timeout=10):
 	if await channelcheck(server_list, ctx, True):
 		return
 
-	if amount == None or people == None:
-		embed = discord.Embed(title="Missing Arguments", description=f"To rain, you need to do `{bot_prefix}rain [amount per person] [amount of people]`. ", color=bot_color)
-		await ctx.send(embed=embed)
-		return
+	async with ctx.channel.typing():
+		if amount == None or people == None:
+			embed = discord.Embed(title="Missing Arguments", description=f"To rain, you need to do `{bot_prefix}rain [amount per person] [amount of people]`. ", color=bot_color)
+			await ctx.send(embed=embed)
+			return
 
-	invalid = False
+		invalid = False
 
-	try:
-		amount = int(amount)
-		people = int(people)
-		timeout = int(timeout)*60
-	except:
-		invalid = True
+		try:
+			amount = int(amount)
+			people = int(people)
+			timeout = int(timeout)*60
+		except:
+			invalid = True
 
-	if amount <= 0 or people <= 1:
-		invalid = True
+		if amount <= 0 or people <= 1:
+			invalid = True
 
-	if invalid:
-		embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=bot_color)
-		await ctx.send(embed=embed)
-		return
+		if invalid:
+			embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=bot_color)
+			await ctx.send(embed=embed)
+			return
 
-	winners = []
+		winners = []
 
-	users = []
+		users = []
 
-	def predicate(message):
+		def predicate(message):
 
-		now = datetime.datetime.utcnow()
-		delta = now - message.created_at
-		return delta.total_seconds() <= timeout
+			now = datetime.datetime.utcnow()
+			delta = now - message.created_at
+			return delta.total_seconds() <= timeout
 
 
-	for channel in ctx.guild.text_channels:
-		async for elem in channel.history().filter(predicate):
+		async for elem in ctx.channel.history().filter(predicate):
 			if elem.author not in users and elem.author != ctx.author and not elem.author.bot:
 				users.append(elem.author)
 
-	author_records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
-	user_coins = 0
+		author_records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
+		user_coins = 0
 
-	if any(author_records):
-		user_coins = author_records[0].Coins
-		if user_coins >= amount*people:
-			pass
+		if any(author_records):
+			user_coins = author_records[0].Coins
+			if user_coins >= amount*people:
+				pass
+			else:
+				embed = discord.Embed(title="Not enough coins.", description=f"You only have {user_coins} out of {amount*people} coins in your wallet. You need to deposit coins to {bot_wallet} to rain.", color=bot_color)
+				await ctx.send(embed=embed)
+				return			
 		else:
-			embed = discord.Embed(title="Not enough coins.", description=f"You only have {user_coins} out of {amount*people} coins in your wallet. You need to deposit coins to {bot_wallet} to rain.", color=bot_color)
+			embed = discord.Embed(title="Not registered.", description=f"You need to be registered to do a rain", color=bot_color)
 			await ctx.send(embed=embed)
-			return			
-	else:
-		embed = discord.Embed(title="Not registered.", description=f"You need to be registered to do a rain", color=bot_color)
+			return		
+
+		eligible = []
+
+		for user in users:
+			records = await sync_to_async(User.objects.filter)(DiscordID=user.id)
+
+			if any(records):
+				eligible.append(user)
+
+		if len(eligible) < people:
+			embed = discord.Embed(title="Not enough eligible.", description=f"This server only has {len(eligible)} eligible (registered and active) users out of your specified {people}", color=bot_color)
+			await ctx.send(embed=embed)
+			return
+
+
+
+		for decision in range(people):
+
+			potential_winner = secrets.choice(eligible)
+			eligible.remove(potential_winner)
+					
+
+			records = await sync_to_async(User.objects.filter)(DiscordID=potential_winner.id)
+
+			if any(records):
+				winners.append(potential_winner)
+
+		await sync_to_async(author_records.update)(Coins=author_records[0].Coins-(amount*people))
+
+		winlist = ""
+		for winner in winners:
+			winlist += winner.mention + "\n"
+
+			user = await sync_to_async(User.objects.filter)(DiscordID=winner.id)
+			await sync_to_async(user.update)(Coins=user[0].Coins+amount)
+
+		embed = discord.Embed(title=f"Rain by {ctx.author.name}!", color=bot_color)
+		embed.add_field(name='Winners', value=winlist)
+		embed.add_field(name='Amount', value=amount)
 		await ctx.send(embed=embed)
-		return		
-
-	eligible = []
-
-	for user in users:
-		records = await sync_to_async(User.objects.filter)(DiscordID=user.id)
-
-		if any(records):
-			eligible.append(user)
-
-	if len(eligible) < people:
-		embed = discord.Embed(title="Not enough eligible.", description=f"This server only has {len(eligible)} eligible (registered and active) users out of your specified {people}", color=bot_color)
-		await ctx.send(embed=embed)
-		return
-
-
-
-	for decision in range(people):
-
-		potential_winner = secrets.choice(eligible)
-		eligible.remove(potential_winner)
-				
-
-		records = await sync_to_async(User.objects.filter)(DiscordID=potential_winner.id)
-
-		if any(records):
-			winners.append(potential_winner)
-
-	await sync_to_async(author_records.update)(Coins=author_records[0].Coins-(amount*people))
-
-	winlist = ""
-	for winner in winners:
-		winlist += winner.mention + "\n"
-
-		user = await sync_to_async(User.objects.filter)(DiscordID=winner.id)
-		await sync_to_async(user.update)(Coins=user[0].Coins+amount)
-
-	embed = discord.Embed(title=f"Rain by {ctx.author.name}!", color=bot_color)
-	embed.add_field(name='Winners', value=winlist)
-	embed.add_field(name='Amount', value=amount)
-	await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Withdraw coins", description="Send coins from your Discord wallet to your registered wallet.")
 async def withdraw(ctx, amount=None):
 	if await channelcheck(server_list, ctx):
 		return
 
-	if amount == None:
-		embed = discord.Embed(title="Missing Arguments", description=f"To withdraw, you need to do `{bot_prefix}withdraw [amount of coins excluding fee]`. ", color=bot_color)
-		await ctx.send(embed=embed)
-		return
+	async with ctx.channel.typing():
+		if amount == None:
+			embed = discord.Embed(title="Missing Arguments", description=f"To withdraw, you need to do `{bot_prefix}withdraw [amount of coins excluding fee]`. ", color=bot_color)
+			await ctx.send(embed=embed)
+			return
 
 
-	invalid = False
-	records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
-	bank_config = requests.get('http://13.57.215.62/config?format=json').json()
-	try:
-		amount = int(amount)
-	except:
-		if amount == 'all':
-			amount = records[0].Coins - (int(bank_config['default_transaction_fee'])+int(bank_config['primary_validator']['default_transaction_fee']))
-		else:
+		invalid = False
+		records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
+		bank_config = requests.get('http://13.57.215.62/config?format=json').json()
+		try:
+			amount = int(amount)
+		except:
+			if amount == 'all':
+				amount = records[0].Coins - (int(bank_config['default_transaction_fee'])+int(bank_config['primary_validator']['default_transaction_fee']))
+			else:
+				invalid = True
+
+		if amount < 1:
 			invalid = True
 
-	if amount < 1:
-		invalid = True
-
-	if invalid:
-		embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=bot_color)
-		await ctx.send(embed=embed)
-		return
-
-
-	if any(records):
-		if records[0].Coins < amount + int(bank_config['default_transaction_fee'])+int(bank_config['primary_validator']['default_transaction_fee']):
-			embed = discord.Embed(title="Inadequate Funds", description=f"You do not have enough coins in your discord wallet. \n Use `{bot_prefix}deposit` to add more coins. \n _Transaction fees may apply_", color=bot_color)
-			embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+		if invalid:
+			embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=bot_color)
 			await ctx.send(embed=embed)
-		else:
-			bank_config = requests.get('http://13.57.215.62/config?format=json').json()
-			balance_lock = requests.get(f"{bank_config['primary_validator']['protocol']}://{bank_config['primary_validator']['ip_address']}:{bank_config['primary_validator']['port'] or 0}/accounts/{bot_wallet}/balance_lock?format=json").json()['balance_lock']
-			txs = [
-					{
-						'amount': int(amount),
-						'recipient': records[0].Address
-					},
-					{
-						'amount': int(bank_config['default_transaction_fee']),
-						'fee': 'BANK',
-						'recipient': bank_config['account_number'],
-					},
-					{
-						'amount': int(bank_config['primary_validator']['default_transaction_fee']),
-						'fee': 'PRIMARY_VALIDATOR',
-						'recipient': bank_config['primary_validator']['account_number'],
-					}
-				]
-			
-			data = await generate_block(balance_lock, txs, signing_key)
-			headers = {
-				'Connection': 'keep-alive',
-				'Accept': 'application/json, text/plain, */*',
-				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TNBAccountManager/1.0.0-alpha.43 Chrome/83.0.4103.122 Electron/9.4.0 Safari/537.36',
-				'Content-Type': 'application/json',
-				'Accept-Language': 'en-US'
-			}
-			r = requests.request("POST", 'http://13.57.215.62/blocks', headers=headers, data=data)
-			if r:
-				if int(requests.get(f"http://54.241.124.162/accounts/{bot_wallet}/balance?format=json").json()['balance']) < amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee']):
-					embed = discord.Embed(title="Error!", description=f"Please try again later.", color=bot_color)
-					embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-					await ctx.send(embed=embed)
-					return
-				try:
-					user = await sync_to_async(User.objects.filter)(Address=records[0].Address)
-					await sync_to_async(user.update)(Coins=user[0].Coins-(amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee'])))
-				except Exception as e:
-					print(e)
-				res = requests.get(f'http://13.57.215.62/bank_transactions?limit=1&recipient={records[0].Address}&amount={amount}').json()['results'][0]
-				if r.json()['id'] == res['block']['id']:
-					newTX = Transaction(Type="WITHDRAW", TxID=res["id"], Amount=int(res['amount']))
-					newTX.save()
+			return
 
-				embed = discord.Embed(title="Coins Withdrawn!", description=f"{amount} coins have been withdrawn to {records[0].Address} succesfully. \n Use `{bot_prefix}status` to check your new balance.", color=bot_color)
+
+		if any(records):
+			if records[0].Coins < amount + int(bank_config['default_transaction_fee'])+int(bank_config['primary_validator']['default_transaction_fee']):
+				embed = discord.Embed(title="Inadequate Funds", description=f"You do not have enough coins in your discord wallet. \n Use `{bot_prefix}deposit` to add more coins. \n _Transaction fees may apply_", color=bot_color)
 				embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 				await ctx.send(embed=embed)
 			else:
-				print(r.json())
-				embed = discord.Embed(title="Error!", description=f"Please try again later.", color=bot_color)
-				embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-				await ctx.send(embed=embed)
-	else:
-		embed = discord.Embed(title="Unregistered", description=f"No address could be found for {ctx.author.name}", color=bot_color)
-		embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-		await ctx.send(embed=embed)
+				bank_config = requests.get('http://13.57.215.62/config?format=json').json()
+				balance_lock = requests.get(f"{bank_config['primary_validator']['protocol']}://{bank_config['primary_validator']['ip_address']}:{bank_config['primary_validator']['port'] or 0}/accounts/{bot_wallet}/balance_lock?format=json").json()['balance_lock']
+				txs = [
+						{
+							'amount': int(amount),
+							'recipient': records[0].Address
+						},
+						{
+							'amount': int(bank_config['default_transaction_fee']),
+							'fee': 'BANK',
+							'recipient': bank_config['account_number'],
+						},
+						{
+							'amount': int(bank_config['primary_validator']['default_transaction_fee']),
+							'fee': 'PRIMARY_VALIDATOR',
+							'recipient': bank_config['primary_validator']['account_number'],
+						}
+					]
+				
+				data = await generate_block(balance_lock, txs, signing_key)
+				headers = {
+					'Connection': 'keep-alive',
+					'Accept': 'application/json, text/plain, */*',
+					'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TNBAccountManager/1.0.0-alpha.43 Chrome/83.0.4103.122 Electron/9.4.0 Safari/537.36',
+					'Content-Type': 'application/json',
+					'Accept-Language': 'en-US'
+				}
+				r = requests.request("POST", 'http://13.57.215.62/blocks', headers=headers, data=data)
+				if r:
+					if int(requests.get(f"http://54.241.124.162/accounts/{bot_wallet}/balance?format=json").json()['balance']) < amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee']):
+						embed = discord.Embed(title="Error!", description=f"Please try again later.", color=bot_color)
+						embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+						await ctx.send(embed=embed)
+						return
+					try:
+						user = await sync_to_async(User.objects.filter)(Address=records[0].Address)
+						await sync_to_async(user.update)(Coins=user[0].Coins-(amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee'])))
+					except Exception as e:
+						print(e)
+					res = requests.get(f'http://13.57.215.62/bank_transactions?limit=1&recipient={records[0].Address}&amount={amount}').json()['results'][0]
+					if r.json()['id'] == res['block']['id']:
+						newTX = Transaction(Type="WITHDRAW", TxID=res["id"], Amount=int(res['amount']))
+						newTX.save()
+
+					embed = discord.Embed(title="Coins Withdrawn!", description=f"{amount} coins have been withdrawn to {records[0].Address} succesfully. \n Use `{bot_prefix}status` to check your new balance.", color=bot_color)
+					embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+					await ctx.send(embed=embed)
+				else:
+					print(r.json())
+					embed = discord.Embed(title="Error!", description=f"Please try again later.", color=bot_color)
+					embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+					await ctx.send(embed=embed)
+		else:
+			embed = discord.Embed(title="Unregistered", description=f"No address could be found for {ctx.author.name}", color=bot_color)
+			embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+			await ctx.send(embed=embed)
 
 
 
