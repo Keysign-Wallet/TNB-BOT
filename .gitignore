@@ -1,4 +1,4 @@
-
+.env.save
 API/db.sqlite3
 .env
 __pycache__
