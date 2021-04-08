@@ -265,7 +265,7 @@ async def stats(ctx):
 		embed = discord.Embed(title="Bot Stats", color=bot_color)
 		embed.add_field(name='Servers', value=str(len(client.guilds)))
 		embed.add_field(name='Users', value=str(len(await sync_to_async(User.objects.all)())))
-		embed.add_field(name='Bot Coins', value=str(amount))
+		embed.add_field(name='Bot Balance', value=str(amount))
 		await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Show registered users", description='Shows the list of users on the server who are registered on the bot')
