@@ -275,7 +275,7 @@ async def users(ctx):
 
 	async with ctx.channel.typing():
 
-		users = await sync_to_async(User.objects.filter)(DiscordID__in=[member.id for member in ctx.guild.members])
+		users = (await sync_to_async(User.objects.filter)(DiscordID__in=[member.id for member in ctx.guild.members])).order_by('-Coins')
 
 		userlist = ""
 		addresslist = ""
@@ -434,6 +434,7 @@ async def withdraw(ctx, amount=None):
 				txs = [
 						{
 							'amount': int(amount),
+							'memo': f'Withdrawal for {ctx.author.name}',
 							'recipient': records[0].Address
 						},
 						{
