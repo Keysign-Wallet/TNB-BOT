@@ -293,7 +293,7 @@ async def users(ctx):
 		await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Rain coins", description='Rain coins on the active and registered users of this server.')
-async def rain(ctx, amount=None, people=None, timeout=10):
+async def rain(ctx, amount=None, people=None, timeout=30, limit=300):
 	if await channelcheck(server_list, ctx, True):
 		return
 
@@ -331,7 +331,7 @@ async def rain(ctx, amount=None, people=None, timeout=10):
 			return delta.total_seconds() <= timeout
 
 
-		async for elem in ctx.channel.history().filter(predicate):
+		async for elem in ctx.channel.history(limit=limit).filter(predicate):
 			if elem.author not in users and elem.author != ctx.author and not elem.author.bot:
 				users.append(elem.author)
 
