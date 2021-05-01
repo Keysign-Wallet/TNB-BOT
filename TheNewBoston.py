@@ -90,6 +90,9 @@ async def on_ready():
 		if server.MainChannel != 0:
 			ServerObject.main_channel = server.MainChannel
 
+		if server.MainChannel != 0:
+			ServerObject.announcement_channel = server.AnnouncementChannel
+
 		server_list.append(ServerObject)
 
 	print ("------------------------------------")
@@ -460,8 +463,8 @@ async def giveaway(ctx, amount=None, timeout=30):
 
 		announce = ctx.channel
 		for server in server_list:
-			if server.server_id == guild.id:
-				announce = guild.get_channel(server.announcement_channel)
+			if server.server_id == ctx.guild.id:
+				announce = ctx.guild.get_channel(server.announcement_channel)
 
 		embed = discord.Embed(title=f"Giveaway by {ctx.author.name}!", color=bot_color)
 		embed.add_field(name='Ends', value=f"{enddate.strftime('%y-%m-%d %H:%M:%S')} GMT")
@@ -474,7 +477,7 @@ async def giveaway(ctx, amount=None, timeout=30):
 		"host": ctx.author.id,
 		"amount": amount,
 		"guild": ctx.guild.id,
-		"channel": announce.channel.id,
+		"channel": announce.id,
 		"message": message.id,
 		}
 
@@ -650,10 +653,32 @@ async def mainchannel(ctx, channel: discord.TextChannel=None):
 		query = await sync_to_async(Server.objects.filter)(ServerID=ctx.guild.id)
 		await sync_to_async(query.update)(MainChannel=channel.id)
 
-		embed = discord.Embed(title="Settings changed", description=f"Coin-related commands channel set to: {channel.mention}", color=bot_color)
+		embed = discord.Embed(title="Settings changed", description=f"general channel set to: {channel.mention}", color=bot_color)
 		await ctx.send(embed=embed)
 	else:
 		embed = discord.Embed(title="No Commands Channel", description=f"You can only set a general channel if you have a normal commands channel set using `{bot_prefix}channel`", color=bot_color)
+		await ctx.send(embed=embed)
+
+@client.command(pass_context=True, brief="Set coin-related commands channel")
+@commands.has_permissions(administrator=True)
+async def announcements(ctx, channel: discord.TextChannel=None):
+	if not channel:
+		channel=ctx.channel
+		
+	exists = False
+	for pending in server_list:
+		if pending.server_id == ctx.guild.id:
+			pending.announcement_channel = channel.id
+			exists = True
+
+	if exists:
+		query = await sync_to_async(Server.objects.filter)(ServerID=ctx.guild.id)
+		await sync_to_async(query.update)(AnnouncementChannel=channel.id)
+
+		embed = discord.Embed(title="Settings changed", description=f"Announcements channel set to: {channel.mention}", color=bot_color)
+		await ctx.send(embed=embed)
+	else:
+		embed = discord.Embed(title="No Commands Channel", description=f"You can only set a announcement channel if you have a normal commands channel set using `{bot_prefix}channel`", color=bot_color)
 		await ctx.send(embed=embed)
 
 client.loop.create_task(constant())
