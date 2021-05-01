@@ -319,7 +319,7 @@ async def rain(ctx, amount=None, people=None, timeout=30, limit=300):
 
 	channel = ctx.guild.get_channel(int(ChannelID))
 
-	async with channel.typing():
+	async with ctx.channel.typing():
 		if amount == None or people == None:
 			embed = discord.Embed(title="Missing Arguments", description=f"To rain, you need to do `{bot_prefix}rain [amount per person] [amount of people]`. ", color=bot_color)
 			await ctx.send(embed=embed)
