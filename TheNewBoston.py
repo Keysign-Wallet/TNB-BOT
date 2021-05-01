@@ -90,7 +90,7 @@ async def on_ready():
 		if server.MainChannel != 0:
 			ServerObject.main_channel = server.MainChannel
 
-		if server.MainChannel != 0:
+		if server.AnnouncementChannel != 0:
 			ServerObject.announcement_channel = server.AnnouncementChannel
 
 		server_list.append(ServerObject)
