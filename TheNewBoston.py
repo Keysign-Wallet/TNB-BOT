@@ -1,5 +1,4 @@
-import os
-import sys
+import os, sys
 import asyncio
 import discord
 from discord.ext import commands
@@ -11,17 +10,20 @@ from nacl.encoding import HexEncoder
 import nacl.signing
 import json
 
-import datetime
+import datetime, pytz
+utc=pytz.UTC
+
 import secrets
 
 from functions import channelcheck, generate_block
+from tasks import Giveaway
 
 load_dotenv()
 sys.path.append(os.getcwd() + '/API')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "API.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
-from main.models import User, Server, Transaction
+from main.models import User, Server, Transaction, Task
 
 # ------------------------------------------------------------------------------------ Startup ------------------------------------------------------------------------------------
 
@@ -62,17 +64,18 @@ class MyHelpCommand(commands.MinimalHelpCommand):
 		await destination.send(embed=e)
 client.help_command = MyHelpCommand()
 
+
 class Register:
-	def  __init__(self, user_id, address):
+	def __init__(self, user_id, address):
 		self.user_id = user_id
 		self.address = address
-
 
 class Guild:
 	def __init__(self, server_id, channel_id):
 		self.server_id = server_id
 		self.channel_id = channel_id
-		self.money_channel = channel_id
+		self.main_channel = channel_id
+		self.announcement_channel = channel_id
 
 server_list = [] # servers with modified settings
 address_holder = []
@@ -84,8 +87,8 @@ async def on_ready():
 
 	for server in servers:
 		ServerObject = Guild(server.ServerID, server.ChannelID)
-		if server.MoneyChannel != 0:
-			ServerObject.money_channel = server.MoneyChannel
+		if server.MainChannel != 0:
+			ServerObject.main_channel = server.MainChannel
 
 		server_list.append(ServerObject)
 
@@ -120,6 +123,14 @@ async def constant():
 					await user.send(embed=embed)
 				except Exception as e:
 					print(e)
+		tasks = await sync_to_async(Task.objects.all)()
+
+		for task in tasks:
+			if task.Date <= utc.localize(datetime.datetime.utcnow()):
+				if task.Type == "GIVEAWAY":
+					PassIn = json.loads(task.Info)
+					await Giveaway(PassIn["host"], PassIn["message"], PassIn["guild"], PassIn["channel"], PassIn["amount"], server_list, client, bot_color)
+					task.delete()
 
 
 # ------------------------------------------------------------------------------------ User functions ------------------------------------------------------------------------------------
@@ -294,10 +305,18 @@ async def users(ctx):
 
 @client.command(pass_context=True, brief="Rain coins", description='Rain coins on the active and registered users of this server.')
 async def rain(ctx, amount=None, people=None, timeout=30, limit=300):
-	if await channelcheck(server_list, ctx, True):
+	if await channelcheck(server_list, ctx):
 		return
 
-	async with ctx.channel.typing():
+	ChannelID = ctx.channel.id
+	for server in server_list:
+		if server.server_id == ctx.guild.id:
+			ChannelID = server.main_channel
+			break
+
+	channel = ctx.guild.get_channel(int(ChannelID))
+
+	async with channel.typing():
 		if amount == None or people == None:
 			embed = discord.Embed(title="Missing Arguments", description=f"To rain, you need to do `{bot_prefix}rain [amount per person] [amount of people]`. ", color=bot_color)
 			await ctx.send(embed=embed)
@@ -324,14 +343,14 @@ async def rain(ctx, amount=None, people=None, timeout=30, limit=300):
 
 		users = []
 
+
 		def predicate(message):
 
 			now = datetime.datetime.utcnow()
 			delta = now - message.created_at
 			return delta.total_seconds() <= timeout
 
-
-		async for elem in ctx.channel.history(limit=limit).filter(predicate):
+		async for elem in channel.history(limit=limit).filter(predicate):
 			if elem.author not in users and elem.author != ctx.author and not elem.author.bot:
 				users.append(elem.author)
 
@@ -349,7 +368,7 @@ async def rain(ctx, amount=None, people=None, timeout=30, limit=300):
 		else:
 			embed = discord.Embed(title="Not registered.", description=f"You need to be registered to do a rain", color=bot_color)
 			await ctx.send(embed=embed)
-			return		
+			return
 
 		eligible = []
 
@@ -363,8 +382,6 @@ async def rain(ctx, amount=None, people=None, timeout=30, limit=300):
 			embed = discord.Embed(title="Not enough eligible.", description=f"This server only has {len(eligible)} eligible (registered and active) users out of your specified {people}", color=bot_color)
 			await ctx.send(embed=embed)
 			return
-
-
 
 		for decision in range(people):
 
@@ -390,6 +407,75 @@ async def rain(ctx, amount=None, people=None, timeout=30, limit=300):
 		embed.add_field(name='Winners', value=winlist)
 		embed.add_field(name='Amount', value=amount)
 		await ctx.send(embed=embed)
+
+
+@client.command(pass_context=True, brief="Start a timed giveaway", description="Create a timed giveaway of coins for one winner")
+async def giveaway(ctx, amount=None, timeout=30):
+	if await channelcheck(server_list, ctx):
+		return
+
+
+	async with ctx.channel.typing():
+		if amount == None:
+			embed = discord.Embed(title="Missing Arguments", description=f"To start a giveaway, you need to do `{bot_prefix}giveaway [amount] [time (in minutes)]`. ", color=bot_color)
+			await ctx.send(embed=embed)
+			return
+
+		invalid = False
+
+		try:
+			amount = int(amount)
+			timeout = int(timeout)
+		except:
+			invalid = True
+
+		if amount <= 0 or timeout <= 1:
+			invalid = True
+
+		if invalid:
+			embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=bot_color)
+			await ctx.send(embed=embed)
+			return
+		
+
+		author_records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
+		user_coins = 0
+
+		if any(author_records):
+			user_coins = author_records[0].Coins
+			if user_coins >= amount:
+				pass
+			else:
+				embed = discord.Embed(title="Not enough coins.", description=f"You only have {user_coins} out of {amount} coins in your wallet. You need to deposit coins to {bot_wallet} to do a giveaway.", color=bot_color)
+				await ctx.send(embed=embed)
+				return			
+		else:
+			embed = discord.Embed(title="Not registered.", description=f"You need to be registered to do a giveaway", color=bot_color)
+			await ctx.send(embed=embed)
+			return
+
+		await sync_to_async(author_records.update)(Coins=author_records[0].Coins-(amount))
+
+		enddate = utc.localize(datetime.datetime.utcnow() + datetime.timedelta(minutes=timeout))
+
+		embed = discord.Embed(title=f"Giveaway by {ctx.author.name}!", color=bot_color)
+		embed.add_field(name='Ends', value=f"{enddate.strftime('%y-%m-%d %H:%M:%S')} GMT")
+		embed.add_field(name='Amount', value=amount)
+		message = await ctx.send(embed=embed)
+
+		await message.add_reaction("<:nike:838015456270483456>")#"<:thenewboston:774636803747086346>")
+
+		info = {
+		"host": ctx.author.id,
+		"amount": amount,
+		"guild": ctx.guild.id,
+		"channel": ctx.channel.id,
+		"message": message.id,
+		}
+
+		query = Task(Type="GIVEAWAY", Date=enddate, Info=json.dumps(info))
+		query.save()
+
 
 @client.command(pass_context=True, brief="Withdraw coins", description="Send coins from your Discord wallet to your registered wallet.")
 async def withdraw(ctx, amount=None):
@@ -537,7 +623,7 @@ async def channel(ctx, channel: discord.TextChannel=None):
 	if not channel:
 		channel=ctx.channel
 		
-	query = Server(ServerID=int(ctx.guild.id), ChannelID=int(channel.id), MoneyChannel=0)
+	query = Server(ServerID=int(ctx.guild.id), ChannelID=int(channel.id))
 	query.save()
 	server_list.append(Guild(int(ctx.guild.id), int(channel.id)))
 	embed = discord.Embed(title="Settings changed", description=f"Commands channel set to: {channel.mention}", color=bot_color)
@@ -545,24 +631,24 @@ async def channel(ctx, channel: discord.TextChannel=None):
 
 @client.command(pass_context=True, brief="Set coin-related commands channel")
 @commands.has_permissions(administrator=True)
-async def moneychannel(ctx, channel: discord.TextChannel=None):
+async def mainchannel(ctx, channel: discord.TextChannel=None):
 	if not channel:
 		channel=ctx.channel
 		
 	exists = False
 	for pending in server_list:
 		if pending.server_id == ctx.guild.id:
-			pending.money_channel = channel.id
+			pending.main_channel = channel.id
 			exists = True
 
 	if exists:
 		query = await sync_to_async(Server.objects.filter)(ServerID=ctx.guild.id)
-		await sync_to_async(query.update)(MoneyChannel=channel.id)
+		await sync_to_async(query.update)(MainChannel=channel.id)
 
 		embed = discord.Embed(title="Settings changed", description=f"Coin-related commands channel set to: {channel.mention}", color=bot_color)
 		await ctx.send(embed=embed)
 	else:
-		embed = discord.Embed(title="No Commands Channel", description=f"You can only set a moneychannel if you have a normal commands channel set using `{bot_prefix}channel`", color=bot_color)
+		embed = discord.Embed(title="No Commands Channel", description=f"You can only set a general channel if you have a normal commands channel set using `{bot_prefix}channel`", color=bot_color)
 		await ctx.send(embed=embed)
 
 client.loop.create_task(constant())

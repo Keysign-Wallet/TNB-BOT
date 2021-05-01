@@ -12,7 +12,8 @@ class User(models.Model):
 class Server(models.Model):
 	ServerID = models.IntegerField()
 	ChannelID = models.IntegerField()
-	MoneyChannel = models.IntegerField(default=0)
+	MainChannel = models.IntegerField(default=0)
+	AnnouncementChannel = models.IntegerField(default=0)
 
 	def __str__(self):
 		return str(self.ServerID)
@@ -24,3 +25,11 @@ class Transaction(models.Model):
 
 	def __str__(self):
 		return str(self.TxID)
+
+class Task(models.Model):
+	Type = models.TextField()
+	Info = models.TextField()
+	Date = models.DateTimeField()
+
+	def __str__(self):
+		return str(self.Type)

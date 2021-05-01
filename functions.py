@@ -19,15 +19,13 @@ async def generate_block(balance_lock, transactions, signing_key):
 
 
 
-async def channelcheck(server_list, ctx, money=False):
+async def channelcheck(server_list, ctx):
 	if ctx.author.guild_permissions.administrator:
 		return False
+
 	for server in server_list:
 		if server.server_id == ctx.guild.id:
-			if money == True:
-				if ctx.channel.id != server.money_channel:
-					return True
-			else:
-				if ctx.channel.id != server.channel_id:
-					return True
+			if ctx.channel.id != server.channel_id:
+				return True
+                
 	return False
