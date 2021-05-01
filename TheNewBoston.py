@@ -463,7 +463,7 @@ async def giveaway(ctx, amount=None, timeout=30):
 		embed.add_field(name='Amount', value=amount)
 		message = await ctx.send(embed=embed)
 
-		await message.add_reaction("<:thenewboston:774636803747086346>")
+		await message.add_reaction("👍")
 
 		info = {
 		"host": ctx.author.id,
