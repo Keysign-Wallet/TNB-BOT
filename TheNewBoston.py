@@ -150,7 +150,7 @@ async def register(ctx, address=None):
 	async with ctx.channel.typing():
 
 		if address == None:
-			embed = discord.Embed(title="Register", description=f"To register your address, use the command `{bot_prefix}register [address]`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `{bot_prefix}verify` to confirm your address.", color=bot_color)
+			embed = discord.Embed(title="Register", description=f"To register your address, use the command `{bot_prefix}register ACCOUNT_NUMBER`. After this, you need to send 1 coin or more to `{bot_wallet}` and then using the command `{bot_prefix}verify` to confirm your address.", color=bot_color)
 			await ctx.send(embed=embed)
 		elif len(address) < 64:
 			embed = discord.Embed(title="Invalid Address", description=f"Please enter a valid address!", color=bot_color)
@@ -212,7 +212,7 @@ async def verify(ctx):
 				else:
 					await ctx.send(f"No transaction detected from `{address.address}`")
 				return
-		embed = discord.Embed(title="No Address", description=f"No address to verify. Did you make sure to use `{bot_prefix}register [address]`?", color=bot_color)
+		embed = discord.Embed(title="No Address", description=f"No address to verify. Did you make sure to use `{bot_prefix}register ACCOUNT_NUMBER`?", color=bot_color)
 		await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="View user status", description="View your or another registered user's status.")
