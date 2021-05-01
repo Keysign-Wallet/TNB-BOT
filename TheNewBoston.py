@@ -637,7 +637,7 @@ async def channel(ctx, channel: discord.TextChannel=None):
 	embed = discord.Embed(title="Settings changed", description=f"Commands channel set to: {channel.mention}", color=bot_color)
 	await ctx.send(embed=embed)
 
-@client.command(pass_context=True, brief="Set coin-related commands channel")
+@client.command(pass_context=True, brief="Set general channel")
 @commands.has_permissions(administrator=True)
 async def mainchannel(ctx, channel: discord.TextChannel=None):
 	if not channel:
@@ -659,7 +659,7 @@ async def mainchannel(ctx, channel: discord.TextChannel=None):
 		embed = discord.Embed(title="No Commands Channel", description=f"You can only set a general channel if you have a normal commands channel set using `{bot_prefix}channel`", color=bot_color)
 		await ctx.send(embed=embed)
 
-@client.command(pass_context=True, brief="Set coin-related commands channel")
+@client.command(pass_context=True, brief="Set announcements channel")
 @commands.has_permissions(administrator=True)
 async def announcements(ctx, channel: discord.TextChannel=None):
 	if not channel:
