@@ -458,10 +458,15 @@ async def giveaway(ctx, amount=None, timeout=30):
 
 		enddate = utc.localize(datetime.datetime.utcnow() + datetime.timedelta(minutes=timeout))
 
+		announce = ctx.channel
+		for server in server_list:
+			if server.server_id == guild.id:
+				announce = guild.get_channel(server.announcement_channel)
+
 		embed = discord.Embed(title=f"Giveaway by {ctx.author.name}!", color=bot_color)
 		embed.add_field(name='Ends', value=f"{enddate.strftime('%y-%m-%d %H:%M:%S')} GMT")
 		embed.add_field(name='Amount', value=amount)
-		message = await ctx.send(embed=embed)
+		message = await announce.send(embed=embed)
 
 		await message.add_reaction("👍")
 
@@ -469,7 +474,7 @@ async def giveaway(ctx, amount=None, timeout=30):
 		"host": ctx.author.id,
 		"amount": amount,
 		"guild": ctx.guild.id,
-		"channel": ctx.channel.id,
+		"channel": announce.channel.id,
 		"message": message.id,
 		}
 
