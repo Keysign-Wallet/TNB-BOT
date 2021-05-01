@@ -432,11 +432,11 @@ async def giveaway(ctx, amount=None, timeout=30):
 		except:
 			invalid = True
 
-		if amount <= 0 or timeout <= 1:
+		if amount <= 99 or timeout <= 1:
 			invalid = True
 
 		if invalid:
-			embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=bot_color)
+			embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid. Did you do reach the 100 coin minimum?", color=bot_color)
 			await ctx.send(embed=embed)
 			return
 		
