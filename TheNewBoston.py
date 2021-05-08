@@ -243,6 +243,7 @@ async def status(ctx, member: discord.Member=None):
 			embed.add_field(name='Address', value=user_address, inline=False)
 			embed.add_field(name='Balance', value=amount)
 			embed.add_field(name='Discord Account Balance', value=user_coins)
+			embed.add_field(name='Transaction History', value=f"[Explorer](https://tnbexplorer.com/tnb/account/{user_address}/)")
 			await ctx.send(embed=embed)
 		else:
 			embed = discord.Embed(title="Unregistered", description=f"No address could be found for {member.name}", color=bot_color)
