@@ -48,7 +48,7 @@ client = commands.Bot(command_prefix=bot_prefix, intents=intents)
 
 class MyHelpCommand(commands.MinimalHelpCommand):
 	async def send_pages(self):
-		if await channelcheck(server_list, ctx):
+		if await channelcheck(server_list, self.context):
 			return
 		destination = self.get_destination()
 		e = discord.Embed(color=bot_color, description='')
@@ -60,7 +60,7 @@ class MyHelpCommand(commands.MinimalHelpCommand):
 		await destination.send(embed=e)
 
 	async def send_command_help(self, command):
-		if await channelcheck(server_list, ctx):
+		if await channelcheck(server_list, self.context):
 			return
 		destination = self.get_destination()
 		e = discord.Embed(color=bot_color, description='')
