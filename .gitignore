@@ -1,5 +1,6 @@
 .env.save
 API/db.sqlite3
 .env
+env
 __pycache__
 API/main/migrations/

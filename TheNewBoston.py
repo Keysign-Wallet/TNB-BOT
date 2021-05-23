@@ -207,10 +207,12 @@ async def verify(ctx):
 					query.save()
 					newTX = Transaction(Type="DEPOSIT", TxID=info["results"][0]["id"], Amount=int(info["results"][0]['amount']))
 					newTX.save()
-					await ctx.send(f"Address `{address.address}` succesfully associated with {ctx.author.mention}")
+					embed = discord.Embed(title='Success!', description=f"Address `{address.address}` succesfully associated with {ctx.author.mention}", color=bot_color)
+					await ctx.send(embed=embed)
 					address_holder.remove(address)
 				else:
-					await ctx.send(f"No transaction detected from `{address.address}`")
+					embed = discord.Embed(title='No Transaction', description=f"No transaction detected from `{address.address}`")
+					await ctx.send(embed=embed)
 				return
 		embed = discord.Embed(title="No Address", description=f"No address to verify. Did you make sure to use `{bot_prefix}register ACCOUNT_NUMBER`?", color=bot_color)
 		await ctx.send(embed=embed)
