@@ -317,6 +317,7 @@ async def users(ctx, page_no=1):
 		embed.add_field(name='User', value=''.join(userlist[page_no * 10:(page_no+1)*10]))
 		embed.add_field(name='Address', value=''.join(addresslist[page_no * 10:(page_no+1)*10]))
 		embed.add_field(name='Account Value', value=''.join(valuelist[page_no * 10:(page_no+1)*10]))
+		embed.set_footer(text=f'Page {page_no+1} out of {page_total}	')
 		await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Rain coins", description='Rain coins on the active and registered users of this server.')
