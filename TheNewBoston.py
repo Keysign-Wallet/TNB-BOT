@@ -110,34 +110,37 @@ async def on_ready():
 
 async def constant():
 	while True:
-		await asyncio.sleep(3)
-		r = requests.get(f"http://54.177.121.3/bank_transactions?format=json&limit=20&recipient={bot_wallet}") 
-		info = r.json()
-		deposits = await sync_to_async(Transaction.objects.filter)(Type="DEPOSIT")
-		for tx in info["results"]:
-			if tx["id"] not in [tx.TxID for tx in deposits]:
-				try:
-					user = await sync_to_async(User.objects.filter)(Address=tx['block']['sender'])
-					await sync_to_async(user.update)(Coins=user[0].Coins+int(tx['amount']))
-				except Exception as e:
-					print(e)
-				newTX = Transaction(Type="DEPOSIT", TxID=tx["id"], Amount=int(tx['amount']))
-				newTX.save()
+		try:
+			await asyncio.sleep(3)
+			r = requests.get(f"http://54.177.121.3/bank_transactions?format=json&limit=20&recipient={bot_wallet}") 
+			info = r.json()
+			deposits = await sync_to_async(Transaction.objects.filter)(Type="DEPOSIT")
+			for tx in info["results"]:
+				if tx["id"] not in [tx.TxID for tx in deposits]:
+					try:
+						user = await sync_to_async(User.objects.filter)(Address=tx['block']['sender'])
+						await sync_to_async(user.update)(Coins=user[0].Coins+int(tx['amount']))
+					except Exception as e:
+						print(e)
+					newTX = Transaction(Type="DEPOSIT", TxID=tx["id"], Amount=int(tx['amount']))
+					newTX.save()
 
-				try:
-					user = await client.fetch_user(user[0].DiscordID)
-					embed = discord.Embed(title="Success", description=f"Succesfully deposited {tx['amount']} coin(s) into your account", color=bot_color)
-					await user.send(embed=embed)
-				except Exception as e:
-					print(e)
-		tasks = await sync_to_async(Task.objects.all)()
+					try:
+						user = await client.fetch_user(user[0].DiscordID)
+						embed = discord.Embed(title="Success", description=f"Succesfully deposited {tx['amount']} coin(s) into your account", color=bot_color)
+						await user.send(embed=embed)
+					except Exception as e:
+						print(e)
+			tasks = await sync_to_async(Task.objects.all)()
 
-		for task in tasks:
-			if task.Date <= utc.localize(datetime.datetime.utcnow()):
-				if task.Type == "GIVEAWAY":
-					PassIn = json.loads(task.Info)
-					await Giveaway(PassIn["host"], PassIn["message"], PassIn["guild"], PassIn["channel"], PassIn["amount"], server_list, client, bot_color)
-					task.delete()
+			for task in tasks:
+				if task.Date <= utc.localize(datetime.datetime.utcnow()):
+					if task.Type == "GIVEAWAY":
+						PassIn = json.loads(task.Info)
+						await Giveaway(PassIn["host"], PassIn["message"], PassIn["guild"], PassIn["channel"], PassIn["amount"], server_list, client, bot_color)
+						task.delete()
+		except:
+			pass
 
 
 # ------------------------------------------------------------------------------------ User functions ------------------------------------------------------------------------------------
