@@ -25,7 +25,7 @@ SECRET_KEY = 'vm3k*dsx2amv5t9*g!e469ithe#@sas6o)3ywx7tg32)&z2p+e' #Yes, I am awa
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['45.79.103.10', 'tnbbot.com', '127.0.0.1']
 
 
 # Application definition

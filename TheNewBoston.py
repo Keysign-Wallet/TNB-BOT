@@ -210,10 +210,12 @@ async def verify(ctx):
 					query.save()
 					newTX = Transaction(Type="DEPOSIT", TxID=info["results"][0]["id"], Amount=int(info["results"][0]['amount']))
 					newTX.save()
-					await ctx.send(f"Address `{address.address}` succesfully associated with {ctx.author.mention}")
+					embed = discord.Embed(title='Success!', description=f"Address `{address.address}` succesfully associated with {ctx.author.mention}", color=bot_color)
+					await ctx.send(embed=embed)
 					address_holder.remove(address)
 				else:
-					await ctx.send(f"No transaction detected from `{address.address}`")
+					embed = discord.Embed(title='No Transaction', description=f"No transaction detected from `{address.address}`")
+					await ctx.send(embed=embed)
 				return
 		embed = discord.Embed(title="No Address", description=f"No address to verify. Did you make sure to use `{bot_prefix}register ACCOUNT_NUMBER`?", color=bot_color)
 		await ctx.send(embed=embed)
@@ -291,27 +293,34 @@ async def stats(ctx):
 		await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Show registered users", description='Shows the list of users on the server who are registered on the bot')
-async def users(ctx):
+async def users(ctx, page_no=1):
 	if await channelcheck(server_list, ctx):
 		return
 
 	async with ctx.channel.typing():
 
 		users = (await sync_to_async(User.objects.filter)(DiscordID__in=[member.id for member in ctx.guild.members])).order_by('-Coins')
+		page_no -= 1
+		page_total = 0
+		if len(users) % 10 != 0:
+			page_total = (len(users) // 10) + 1
+		else:
+			page_total = len(users)
 
-		userlist = ""
-		addresslist = ""
-		valuelist = ""
+		userlist = []
+		addresslist = []
+		valuelist = []
 
 		for user in users:
-			userlist += f"{ctx.guild.get_member(user.DiscordID).mention}\n"
-			addresslist += f"{user.Address[:6]}...\n"
-			valuelist += f"{user.Coins}\n"
+			userlist.append(f"{ctx.guild.get_member(user.DiscordID).mention}\n")
+			addresslist.append(f"{user.Address[:6]}...\n")
+			valuelist.append(f"{user.Coins}\n")
 
 		embed = discord.Embed(title="Registered Users", color=bot_color)
-		embed.add_field(name='User', value=userlist)
-		embed.add_field(name='Address', value=addresslist)
-		embed.add_field(name='Account Value', value=valuelist)
+		embed.add_field(name='User', value=''.join(userlist[page_no * 10:(page_no+1)*10]))
+		embed.add_field(name='Address', value=''.join(addresslist[page_no * 10:(page_no+1)*10]))
+		embed.add_field(name='Account Value', value=''.join(valuelist[page_no * 10:(page_no+1)*10]))
+		embed.set_footer(text=f'Page {page_no+1} out of {page_total}	')
 		await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Rain coins", description='Rain coins on the active and registered users of this server.')
