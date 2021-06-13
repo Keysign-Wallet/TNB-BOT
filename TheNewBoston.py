@@ -648,11 +648,23 @@ async def channel(ctx, channel: discord.TextChannel=None):
 	if not channel:
 		channel=ctx.channel
 		
-	query = Server(ServerID=int(ctx.guild.id), ChannelID=int(channel.id))
-	query.save()
-	server_list.append(Guild(int(ctx.guild.id), int(channel.id)))
-	embed = discord.Embed(title="Settings changed", description=f"Commands channel set to: {channel.mention}", color=bot_color)
-	await ctx.send(embed=embed)
+	for pending in server_list:
+		if pending.server_id == ctx.guild.id:
+			pending.main_channel = channel.id
+			exists = True
+
+	if exists:
+		query = await sync_to_async(Server.objects.filter)(ServerID=ctx.guild.id)
+		await sync_to_async(query.update)(ChannelID=channel.id)
+
+		embed = discord.Embed(title="Settings changed", description=f"Commands channel set to: {channel.mention}", color=bot_color)
+		await ctx.send(embed=embed)
+	else:
+		query = Server(ServerID=int(ctx.guild.id), ChannelID=int(channel.id))
+		query.save()
+		server_list.append(Guild(int(ctx.guild.id), int(channel.id)))
+		embed = discord.Embed(title="Settings changed", description=f"Commands channel set to: {channel.mention}", color=bot_color)
+		await ctx.send(embed=embed)
 
 @client.command(pass_context=True, brief="Set general channel")
 @commands.has_permissions(administrator=True)
