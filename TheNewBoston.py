@@ -109,6 +109,7 @@ async def on_ready():
 # ------------------------------------------------------------------------------------ Constant ------------------------------------------------------------------------------------
 
 async def constant():
+	global server_list
 	while True:
 		try:
 			await asyncio.sleep(3)
@@ -139,6 +140,20 @@ async def constant():
 						PassIn = json.loads(task.Info)
 						await Giveaway(PassIn["host"], PassIn["message"], PassIn["guild"], PassIn["channel"], PassIn["amount"], server_list, client, bot_color)
 						task.delete()
+
+
+			server_list = []
+			servers = await sync_to_async(Server.objects.all)()
+			for server in servers:
+				ServerObject = Guild(server.ServerID, server.ChannelID)
+				if server.MainChannel != 0:
+					ServerObject.main_channel = server.MainChannel
+
+				if server.AnnouncementChannel != 0:
+					ServerObject.announcement_channel = server.AnnouncementChannel
+
+				server_list.append(ServerObject)
+
 		except:
 			pass
 
