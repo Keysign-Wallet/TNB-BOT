@@ -271,6 +271,34 @@ async def status(ctx, member: discord.Member=None):
 			await ctx.send(embed=embed)
 
 
+@client.command(pass_context=True, brief="Support the bot", description='Donate specified amount of coins to the bot development.')
+async def donate(ctx, amount=1):
+	if await channelcheck(server_list, ctx):
+		return
+
+	async with ctx.channel.typing():
+
+		author_records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
+		user_coins = 0
+
+		if any(author_records):
+			user_coins = author_records[0].Coins
+			if user_coins >= amount:
+				pass
+			else:
+				embed = discord.Embed(title="Not enough coins.", description=f"You only have {user_coins} out of {amount} coins in your wallet. You need to deposit coins to {bot_wallet} to donate.", color=bot_color)
+				await ctx.send(embed=embed)
+				return			
+		else:
+			embed = discord.Embed(title="Not registered.", description=f"You need to be registered to donate", color=bot_color)
+			await ctx.send(embed=embed)
+			return
+
+		await sync_to_async(author_records.update)(Coins=author_records[0].Coins-(amount))
+		embed = discord.Embed(title="Thank you!", description=f"Thank you for the generous donation of {amount} coins! It is truly appreciated by the bot development team :)", color=bot_color)
+		await ctx.send(embed=embed)
+		return
+
 @client.command(pass_context=True, brief="Earn coins", description='Learn about the ways to earn TNBC.')
 async def earn(ctx):
 	if await channelcheck(server_list, ctx):
