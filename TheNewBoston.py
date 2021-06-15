@@ -277,6 +277,20 @@ async def donate(ctx, amount=1):
 		return
 
 	async with ctx.channel.typing():
+		invalid = False
+
+		try:
+			amount = int(amount)
+		except:
+			invalid = True
+
+		if amount <= 0:
+			invalid = True
+
+		if invalid:
+			embed = discord.Embed(title="Invalid Argument(s)", description="One or more of your passed arguments are invalid", color=bot_color)
+			await ctx.send(embed=embed)
+			return
 
 		author_records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
 		user_coins = 0
@@ -297,7 +311,6 @@ async def donate(ctx, amount=1):
 		await sync_to_async(author_records.update)(Coins=author_records[0].Coins-(amount))
 		embed = discord.Embed(title="Thank you!", description=f"Thank you for the generous donation of {amount} coins! It is truly appreciated by the bot development team :)", color=bot_color)
 		await ctx.send(embed=embed)
-		return
 
 @client.command(pass_context=True, brief="Earn coins", description='Learn about the ways to earn TNBC.')
 async def earn(ctx):
