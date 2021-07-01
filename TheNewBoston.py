@@ -251,7 +251,7 @@ async def status(ctx, member: discord.Member=None):
 			user_address = records[0].Address
 			user_coins = records[0].Coins
 
-			r = requests.get(f"http://54.219.183.128/accounts/{user_address}/balance?format=json")
+			r = requests.get(f"http://54.183.16.194/accounts/{user_address}/balance?format=json")
 			info = r.json()
 
 			amount = 0
@@ -337,7 +337,7 @@ async def stats(ctx):
 
 	async with ctx.channel.typing():
 
-		r = requests.get(f"http://54.219.183.128/accounts/{bot_wallet}/balance?format=json")
+		r = requests.get(f"http://54.183.16.194/accounts/{bot_wallet}/balance?format=json")
 		info = r.json()
 
 		amount = info["balance"]
@@ -626,7 +626,7 @@ async def withdraw(ctx, amount=None):
 				}
 				r = requests.request("POST", 'http://54.177.121.3/blocks', headers=headers, data=data)
 				if r:
-					if int(requests.get(f"http://54.219.183.128/accounts/{bot_wallet}/balance?format=json").json()['balance']) < amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee']):
+					if int(requests.get(f"http://54.183.16.194/accounts/{bot_wallet}/balance?format=json").json()['balance']) < amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee']):
 						embed = discord.Embed(title="Error!", description=f"Please try again later.", color=bot_color)
 						embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 						await ctx.send(embed=embed)
