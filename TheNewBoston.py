@@ -317,7 +317,7 @@ async def earn(ctx):
 	if await channelcheck(server_list, ctx):
 		return
 
-	embed = discord.Embed(title="Earn Coins", description="To earn coins, try completing some tasks: https://thenewboston.com/tasks/All", color=bot_color)
+	embed = discord.Embed(title="Earn Coins", description="The main ways to earn coins right now are the following:\n\n1. Completing [tasks](https://thenewboston.com/tasks/All)\n\n2. By working on [projects](https://thenewboston.com/projects)\n\n3. Working on the [core team](https://thenewboston.com/openings/All)\n\n4. Free 50 coins from the [faucet](https://tnbfaucet.com/)\n\n5. Winning rains and giveaways using this bot :)", color=bot_color)
 	await ctx.send(embed=embed)
 
 
