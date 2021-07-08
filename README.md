@@ -1,6 +1,6 @@
 # TNB-BOT
 
-TNBC Discord bot (unsupported version)
+TNBC Discord bot (outdated source)
 
 Add the bot https://discord.com/api/oauth2/authorize?client_id=823155121197416458&permissions=8&scope=bot
 
