@@ -113,7 +113,7 @@ async def constant():
 	while True:
 		try:
 			await asyncio.sleep(3)
-			r = requests.get(f"http://54.183.16.194/bank_transactions?format=json&limit=20&recipient={bot_wallet}") 
+			r = requests.get(f"http://45.33.60.42/bank_transactions?format=json&limit=20&recipient={bot_wallet}") 
 			info = r.json()
 			deposits = await sync_to_async(Transaction.objects.filter)(Type="DEPOSIT")
 			for tx in info["results"]:
@@ -218,7 +218,7 @@ async def verify(ctx):
 
 		for address in address_holder:
 			if address.user_id == ctx.author.id:
-				r = requests.get(f"http://54.183.16.194/bank_transactions?format=json&limit=1&block__sender={address.address}&recipient={bot_wallet}") # sender and receiver logic needed as well as a user DB
+				r = requests.get(f"http://45.33.60.42/bank_transactions?format=json&limit=1&block__sender={address.address}&recipient={bot_wallet}") # sender and receiver logic needed as well as a user DB
 				info = r.json()
 				if any(info["results"]):
 					query = User(DiscordID=int(ctx.author.id), Address=address.address)
@@ -251,7 +251,7 @@ async def status(ctx, member: discord.Member=None):
 			user_address = records[0].Address
 			user_coins = records[0].Coins
 
-			r = requests.get(f"http://54.219.183.128/accounts/{user_address}/balance?format=json")
+			r = requests.get(f"http://45.33.60.42/accounts/{user_address}/balance?format=json")
 			info = r.json()
 
 			amount = 0
@@ -337,7 +337,7 @@ async def stats(ctx):
 
 	async with ctx.channel.typing():
 
-		r = requests.get(f"http://54.219.183.128/accounts/{bot_wallet}/balance?format=json")
+		r = requests.get(f"http://45.33.60.42/accounts/{bot_wallet}/balance?format=json")
 		info = r.json()
 
 		amount = info["balance"]
@@ -572,7 +572,7 @@ async def withdraw(ctx, amount=None):
 
 		invalid = False
 		records = await sync_to_async(User.objects.filter)(DiscordID=ctx.author.id)
-		bank_config = requests.get('http://54.183.16.194/config?format=json').json()
+		bank_config = requests.get('http://45.33.60.42/config?format=json').json()
 		try:
 			amount = int(amount)
 		except:
@@ -596,7 +596,7 @@ async def withdraw(ctx, amount=None):
 				embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 				await ctx.send(embed=embed)
 			else:
-				bank_config = requests.get('http://54.183.16.194/config?format=json').json()
+				bank_config = requests.get('http://45.33.60.42/config?format=json').json()
 				balance_lock = requests.get(f"{bank_config['primary_validator']['protocol']}://{bank_config['primary_validator']['ip_address']}:{bank_config['primary_validator']['port'] or 0}/accounts/{bot_wallet}/balance_lock?format=json").json()['balance_lock']
 				txs = [
 						{
@@ -624,9 +624,9 @@ async def withdraw(ctx, amount=None):
 					'Content-Type': 'application/json',
 					'Accept-Language': 'en-US'
 				}
-				r = requests.request("POST", 'http://54.183.16.194/blocks', headers=headers, data=data)
+				r = requests.request("POST", 'http://45.33.60.42/blocks', headers=headers, data=data)
 				if r:
-					if int(requests.get(f"http://54.219.183.128/accounts/{bot_wallet}/balance?format=json").json()['balance']) < amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee']):
+					if int(requests.get(f"http://45.33.60.42/accounts/{bot_wallet}/balance?format=json").json()['balance']) < amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee']):
 						embed = discord.Embed(title="Error!", description=f"Please try again later.", color=bot_color)
 						embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
 						await ctx.send(embed=embed)
@@ -636,7 +636,7 @@ async def withdraw(ctx, amount=None):
 						await sync_to_async(user.update)(Coins=user[0].Coins-(amount+int(bank_config['primary_validator']['default_transaction_fee'])+int(bank_config['default_transaction_fee'])))
 					except Exception as e:
 						print(e)
-					res = requests.get(f'http://54.183.16.194/bank_transactions?limit=1&recipient={records[0].Address}&amount={amount}').json()['results'][0]
+					res = requests.get(f'http://45.33.60.42/bank_transactions?limit=1&recipient={records[0].Address}&amount={amount}').json()['results'][0]
 					if r.json()['id'] == res['block']['id']:
 						newTX = Transaction(Type="WITHDRAW", TxID=res["id"], Amount=int(res['amount']))
 						newTX.save()
